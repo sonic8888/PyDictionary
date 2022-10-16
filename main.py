@@ -2,6 +2,7 @@ import sys
 from PySide6.QtWidgets import QApplication, QWidget
 from PySide6.QtGui import QScreen
 from Views import HomeGui
+from qt_material import apply_stylesheet
 
 
 def get_screen_size():
@@ -43,5 +44,6 @@ if __name__ == '__main__':
     sizeWindow = get_standard_size_window()
     windowHome = HomeGui.HomeWindows(sizeWindow)
     move_to_centre(windowHome)
+    apply_stylesheet(app, theme='dark_teal.xml')
     windowHome.show()
     app.exec()
