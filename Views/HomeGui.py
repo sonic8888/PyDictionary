@@ -1,31 +1,37 @@
-import sys
-
-from PySide6.QtCore import QRect, QSize
-from PySide6.QtGui import QPalette, QColor, QAction, QIcon
-from PySide6.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QHBoxLayout, QPushButton, QToolBar
-
-from Servise.Variable import minSizeButton, maxSizeButton, maxSizeWindow, minSizeWindow
+import PySide6
+from PySide6.QtCore import QSize, SIGNAL
+from PySide6.QtGui import QAction, QIcon
+from PySide6.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QHBoxLayout, QToolBar
+from Servise.Variable import minSizeWindow
 from Views.Buttons import Button
+from Views.DictionaryGui import DictionaryWindow
 
 
 class HomeWindows(QMainWindow):
-    def __init__(self, sizeWindow):
+    """
+    Начальное окно приложения
+    """
+
+    def __init__(self, geometryWindow):
         super(HomeWindows, self).__init__()
+        self.geometryWindow = geometryWindow
+        self.windowDictionary = None
         self.setWindowTitle("Home")
-        self.size = QRect(0, 0, sizeWindow[0], sizeWindow[1])
-        minSize = QSize(int(sizeWindow[0] * minSizeWindow), int(sizeWindow[1] * minSizeWindow))
-        maxSize = QSize(int(sizeWindow[0] * maxSizeWindow), int(sizeWindow[1] * maxSizeWindow))
+        self.name = 'HomeWindows'
+        self.setGeometry(self.geometryWindow)
+        minSize = QSize(int(geometryWindow.width() * minSizeWindow), int(geometryWindow.height() * minSizeWindow))
+
         self.setMinimumSize(minSize)
-        # self.setMaximumSize(maxSize)
-        self.setGeometry(self.size)
 
         #  toolbar
         toolbar = QToolBar("My main toolbar")
 
         #  button
         self.buttonOne = Button('словарь')
+        self.buttonOne.clicked.connect(self.open_window_dictionary)
         self.buttonTwo = Button('тренировка')
         self.buttonThree = Button('задание')
+        self.connect(self.buttonTwo, SIGNAL('clicked()'), self.test)
 
         # layout
         layoutV = QVBoxLayout()
@@ -41,7 +47,7 @@ class HomeWindows(QMainWindow):
         widget = QWidget()
 
         # QAction
-        button_action = QAction("Your button", self)
+        button_action = QAction(QIcon('Icons/settings_white.png'), "Your button", self)
 
         # layout add widget
         layoutH.addWidget(QWidget())
@@ -68,3 +74,14 @@ class HomeWindows(QMainWindow):
 
     def onMyToolBarButtonClick(self, s):
         print("click", s)
+
+    def open_window_dictionary(self, s):
+        self.windowDictionary = DictionaryWindow(self.geometryWindow, self)
+        self.windowDictionary.show()
+        self.hide()
+
+    def closeEvent(self, event: PySide6.QtGui.QCloseEvent):
+        print("Hello")
+
+    def test(self):
+        print("jjjjjjjjjjjj")

@@ -1,8 +1,10 @@
 import sys
-from PySide6.QtWidgets import QApplication, QWidget
+from PySide6.QtCore import QRect
 from PySide6.QtGui import QScreen
-from Views import HomeGui
+from PySide6.QtWidgets import QApplication
 from qt_material import apply_stylesheet
+from Views import HomeGui
+
 
 
 def get_screen_size():
@@ -15,7 +17,7 @@ def get_screen_size():
 
 def get_standard_size_window():
     """
-        :return: размер окна
+        :return: size window
     """
     dividerWidth = 2.13
     dividerHeight = 2.064
@@ -25,25 +27,22 @@ def get_standard_size_window():
     return widthStandard, heightStandard
 
 
-def move_to_centre(widget):
+def get_geometry():
     """
-    Перемещает виджет(окно)
-    по центру экрана
-    :param widget:
-    :return:
+    start pos. and size window apps
+    :return: QRect
     """
+    sizeWindow = get_standard_size_window()
     screenSize = get_screen_size()
-    sizeWidget = widget.geometry()
-    pointWidth = int((screenSize[0] - sizeWidget.width()) / 2)
-    pointHeight = int((screenSize[1] - sizeWidget.height()) / 2)
-    widget.move(pointWidth, pointHeight)
+    pointWidth = int((screenSize[0] - sizeWindow[0]) / 2)
+    pointHeight = int((screenSize[1] - sizeWindow[1]) / 2)
+    return QRect(pointWidth, pointHeight, sizeWindow[0], sizeWindow[1])
 
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    sizeWindow = get_standard_size_window()
-    windowHome = HomeGui.HomeWindows(sizeWindow)
-    move_to_centre(windowHome)
-    apply_stylesheet(app, theme='dark_teal.xml')
+    geometryWindow = get_geometry()
+    windowHome = HomeGui.HomeWindows(geometryWindow)
     windowHome.show()
+    apply_stylesheet(app, theme='dark_teal.xml')
     app.exec()
