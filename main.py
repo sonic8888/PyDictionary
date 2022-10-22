@@ -4,7 +4,8 @@ from PySide6.QtGui import QScreen
 from PySide6.QtWidgets import QApplication
 from qt_material import apply_stylesheet
 from Views import HomeGui
-
+from Servise.Db.Sqlite.SqliteApplication import create_empty_tables
+from test import displey
 
 
 def get_screen_size():
@@ -46,3 +47,5 @@ if __name__ == '__main__':
     windowHome.show()
     apply_stylesheet(app, theme='dark_teal.xml')
     app.exec()
+    # create_empty_tables()
+    # displey()

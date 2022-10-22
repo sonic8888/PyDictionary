@@ -1,10 +1,11 @@
 import PySide6
 from PySide6.QtCore import QSize, SIGNAL
 from PySide6.QtGui import QAction, QIcon
-from PySide6.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QHBoxLayout, QToolBar
+from PySide6.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QHBoxLayout, QToolBar, QMessageBox
 from Servise.Variable import minSizeWindow
 from Views.Buttons import Button
 from Views.DictionaryGui import DictionaryWindow
+
 
 
 class HomeWindows(QMainWindow):
@@ -30,8 +31,9 @@ class HomeWindows(QMainWindow):
         self.buttonOne = Button('словарь')
         self.buttonOne.clicked.connect(self.open_window_dictionary)
         self.buttonTwo = Button('тренировка')
+        self.buttonTwo.clicked.connect(self.buttonTwo_clicked)
         self.buttonThree = Button('задание')
-        self.connect(self.buttonTwo, SIGNAL('clicked()'), self.test)
+
 
         # layout
         layoutV = QVBoxLayout()
@@ -81,7 +83,10 @@ class HomeWindows(QMainWindow):
         self.hide()
 
     def closeEvent(self, event: PySide6.QtGui.QCloseEvent):
-        print("Hello")
+        print("closeEvent")
 
-    def test(self):
-        print("jjjjjjjjjjjj")
+    def buttonTwo_clicked(self):
+        pass
+
+
+
