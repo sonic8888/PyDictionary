@@ -88,5 +88,6 @@ class HomeWindows(QMainWindow):
     def buttonTwo_clicked(self):
         pass
 
-
+    def mousePressEvent(self, e):
+        print("ggggg")
 

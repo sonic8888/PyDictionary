@@ -1,7 +1,7 @@
 import PySide6
 from PySide6 import QtCore
 from PySide6.QtCore import QSize, QRect, Qt
-from PySide6.QtGui import QPalette, QColor, QAction, QIcon
+from PySide6.QtGui import QPalette, QColor, QAction, QIcon, QMouseEvent
 from PySide6.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QHBoxLayout, QToolBar, QListWidget, QListView, \
     QLineEdit
 from Models.WordsModel import Words
@@ -22,9 +22,24 @@ class Color(QWidget):
         self.setPalette(palette)
 
 
+class MyListView(QListView):
+    def __init__(self, parent):
+        super(MyListView, self).__init__()
+        self.parent = parent
+
+    def mouseDoubleClickEvent(self, event):
+        listSelectedIndex = self.selectedIndexes()
+        index = listSelectedIndex[0]
+        listData = self.parent.model.words[index.row()]
+        data = listData[1]
+        print(data)
+        return data
+
+
 class DictionaryWindow(QMainWindow):
     def __init__(self, geometryWindow, widowParent):
         super(DictionaryWindow, self).__init__()
+        self.text_lineEdit = ''
         self.setWindowTitle("Dictionary")
         self.geometryWindow = geometryWindow
         self.setGeometry(self.geometryWindow)
@@ -44,11 +59,13 @@ class DictionaryWindow(QMainWindow):
         self.layoutH_V = QVBoxLayout()
         self.lineEdit = QLineEdit()
         self.lineEdit.textChanged.connect(self.textChanged)
+        self.lineEdit.returnPressed.connect(self.get_data)
         self.layoutH_V.addWidget(self.lineEdit)
 
-        self.listW = QListView()
+        self.listW = MyListView(self)
         self.model = Words()
         self.load()
+        # self.listW.clicked.connect(self.getSelectIndex)
 
         self.listW.setModel(self.model)
         self.layoutH_V.addWidget(self.listW)
@@ -73,5 +90,19 @@ class DictionaryWindow(QMainWindow):
         self.model.words = select_data(self)
 
     def textChanged(self, s):
+        self.text_lineEdit = s
         self.model.words = select_data(self, 1, s)
         self.model.layoutChanged.emit()
+
+    def get_data(self):
+        print(self.text_lineEdit)
+
+    # def getSelectIndex(self):
+    #     listSelectedIndex = self.listW.selectedIndexes()
+    #     index = listSelectedIndex[0]
+    #     listData = self.model.words[index.row()]
+    #     data = listData[1]
+    #     print(data)
+    #     return data
+
+
