@@ -7,7 +7,6 @@ from Views.Buttons import Button
 from Views.DictionaryGui import DictionaryWindow
 
 
-
 class HomeWindows(QMainWindow):
     """
     Начальное окно приложения
@@ -33,7 +32,6 @@ class HomeWindows(QMainWindow):
         self.buttonTwo = Button('тренировка')
         self.buttonTwo.clicked.connect(self.buttonTwo_clicked)
         self.buttonThree = Button('задание')
-
 
         # layout
         layoutV = QVBoxLayout()
@@ -78,9 +76,12 @@ class HomeWindows(QMainWindow):
         print("click", s)
 
     def open_window_dictionary(self, s):
-        self.windowDictionary = DictionaryWindow(self.geometryWindow, self)
-        self.windowDictionary.show()
-        self.hide()
+        if self.windowDictionary:
+            self.windowDictionary.show()
+        else:
+            self.windowDictionary = DictionaryWindow(self.geometryWindow, self)
+            self.windowDictionary.show()
+            self.hide()
 
     def closeEvent(self, event: PySide6.QtGui.QCloseEvent):
         print("closeEvent")
@@ -91,3 +92,5 @@ class HomeWindows(QMainWindow):
     def mousePressEvent(self, e):
         print("ggggg")
 
+    def delete(self):
+        self.windowDictionary = None

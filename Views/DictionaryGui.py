@@ -22,20 +22,6 @@ class Color(QWidget):
         self.setPalette(palette)
 
 
-class MyListView(QListView):
-    def __init__(self, parent):
-        super(MyListView, self).__init__()
-        self.parent = parent
-
-    def mouseDoubleClickEvent(self, event):
-        listSelectedIndex = self.selectedIndexes()
-        index = listSelectedIndex[0]
-        listData = self.parent.model.words[index.row()]
-        data = listData[1]
-        print(data)
-        return data
-
-
 class DictionaryWindow(QMainWindow):
     def __init__(self, geometryWindow, widowParent):
         super(DictionaryWindow, self).__init__()
@@ -62,9 +48,10 @@ class DictionaryWindow(QMainWindow):
         self.lineEdit.returnPressed.connect(self.get_data)
         self.layoutH_V.addWidget(self.lineEdit)
 
-        self.listW = MyListView(self)
+        self.listW = QListView(self)
         self.model = Words()
         self.load()
+        self.listW.doubleClicked.connect(self.getSelectIndex)
         # self.listW.clicked.connect(self.getSelectIndex)
 
         self.listW.setModel(self.model)
@@ -82,9 +69,11 @@ class DictionaryWindow(QMainWindow):
     def closeEvent(self, event: PySide6.QtGui.QCloseEvent):
         if not self.windowParent.isVisible():
             self.windowParent.show()
+            self.windowParent.delete()
 
     def onMyToolBarButtonClick(self, s):
-        print("click", s)
+        self.windowParent.show()
+        self.hide()
 
     def load(self):
         self.model.words = select_data(self)
@@ -97,12 +86,13 @@ class DictionaryWindow(QMainWindow):
     def get_data(self):
         print(self.text_lineEdit)
 
-    # def getSelectIndex(self):
-    #     listSelectedIndex = self.listW.selectedIndexes()
-    #     index = listSelectedIndex[0]
-    #     listData = self.model.words[index.row()]
-    #     data = listData[1]
-    #     print(data)
-    #     return data
+    def getSelectIndex(self):
+        listSelectedIndex = self.listW.selectedIndexes()
+        index = listSelectedIndex[0]
+        listData = self.model.words[index.row()]
+        data = listData[1]
+        print(data)
+        return data
 
-
+    def test(self):
+        print("hello")
