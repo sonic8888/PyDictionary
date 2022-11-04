@@ -1,0 +1,22 @@
+{
+  "home": {
+    "Themas.LIGHT": "home_dark.png",
+    "Themas.DARK": "home_white.png"
+  },
+  "plus": {
+    "Themas.LIGHT": "plus_dark.png",
+    "Themas.DARK": "plus_white.png"
+  },
+  "sound": {
+    "Themas.LIGHT": "volume_dark.png",
+    "Themas.DARK": "volume_white.png"
+  },
+  "settings": {
+    "Themas.LIGHT": "cog_dark.png",
+    "Themas.DARK": "cog_white.png"
+  },
+  "save_db": {
+    "Themas.LIGHT": "database_dark.png",
+    "Themas.DARK": "database_white.png"
+  }
+}
