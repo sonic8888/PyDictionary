@@ -1,7 +1,9 @@
-import sys
+import sys, os
+
 from typing import Any
 import re
-from PySide6.QtGui import QStandardItemModel, QStandardItem
+from enum import Enum
+from PySide6.QtGui import QStandardItemModel, QStandardItem, QIcon, QPixmap
 from Servise.Db.Sqlite.SqliteApplication import test
 from PySide6.QtCore import QSize, Qt, Slot, QItemSelection
 from PySide6.QtWidgets import QApplication, QMainWindow, QPushButton, QWidget, QVBoxLayout, QLabel, QListView
@@ -42,6 +44,7 @@ class MyItem(QStandardItem):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        icon = QIcon('Icons/database_dark.png')
         self._standard_model = QStandardItemModel(self)
         self.root_node = self._standard_model.invisibleRootItem()
         self.item1 = QStandardItem("one")
@@ -53,14 +56,21 @@ class MainWindow(QMainWindow):
         self.root_node.appendRow(self.item2)
         self.root_node.appendRow(self.item3)
         self.layout = QVBoxLayout()
+        pm = QPixmap('Icons/database_dark.png')
         self.label = QLabel("test")
+        self.label.setPixmap(pm)
+        self.label.setWindowIcon(icon)
         self.listView = QListView()
         self.listView.setModel(self._standard_model)
-        self.button = QPushButton("Press ME")
+        self.button = QPushButton(icon,"Press ME")
+        # self.button.setWindowIcon(icon)
         self.button.clicked.connect(self.clicked)
         self.layout.addWidget(self.label)
         self.layout.addWidget(self.listView)
         self.layout.addWidget(self.button)
+        widjet_icon = QWidget()
+        widjet_icon.setWindowIcon(icon)
+        self.layout.addWidget(widjet_icon)
         self.widget = QWidget()
         self.selection_model = self.listView.selectionModel()
         self.selection_model.selectionChanged.connect(self.selection_changed_slot)
@@ -85,20 +95,11 @@ class MainWindow(QMainWindow):
         # strr = model.data(self.index)
         print(self.index.row())
         child = self.root_node.child(self.index.row(), 0)
-        print(child.words)
 
 
-# app = QApplication(sys.argv)
-#
-# window = MainWindow()
-# window.show()
-#
-# app.exec()
-# my_str = 'addition (сущ)'
-#
-# if re.fullmatch(regx_pattern, my_str):
-#     list = re.split(regx_split_pattern, my_str)
-#     list[1] = list[1][:-1]
-#     print(list)
-# else:
-#     print('No Match!')
+app = QApplication(sys.argv)
+
+window = MainWindow()
+window.show()
+
+app.exec()

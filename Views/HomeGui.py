@@ -5,6 +5,7 @@ from PySide6.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QHBoxLayout, QT
 from Servise.Variable import minSizeWindow
 from Views.Buttons import Button
 from Views.DictionaryGui import DictionaryWindow
+from main import create_icon
 
 
 class HomeWindows(QMainWindow):
@@ -45,9 +46,9 @@ class HomeWindows(QMainWindow):
 
         # central widget
         widget = QWidget()
-
+        _icon_settings = create_icon('settings')
         # QAction
-        button_action = QAction(QIcon('Icons/settings_white.png'), "Your button", self)
+        button_action = QAction(_icon_settings, "Your button", self)
 
         # layout add widget
         layoutH.addWidget(QWidget())
@@ -78,6 +79,7 @@ class HomeWindows(QMainWindow):
     def open_window_dictionary(self, s):
         if self.windowDictionary:
             self.windowDictionary.show()
+            self.hide()
         else:
             self.windowDictionary = DictionaryWindow(self.geometryWindow, self)
             self.windowDictionary.show()
