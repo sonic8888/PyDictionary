@@ -10,6 +10,7 @@ from PySide6.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QHBoxLayout, QT
     QLineEdit, QTreeView, QTableView, QPushButton, QLabel
 from Models.WordsModel import Words
 from Servise.Db.Sqlite.SqliteApplication import select_data
+from main import create_icon
 
 import main
 from Servise.Variable import minSizeWindow, maxSizeWindow
@@ -62,7 +63,8 @@ class DictionaryWindow(QMainWindow):
         self.toolbar = QToolBar("toolbar")
         self.addToolBar(self.toolbar)
         # QAction
-        button_action = QAction(QIcon('Icons/home_white.png'), "Your button", self)
+        _icon_home = create_icon('home')
+        button_action = QAction(_icon_home, "Your button", self)
         button_action.setStatusTip("This is your button")
         button_action.triggered.connect(self.onMyToolBarButtonClick)
         self.toolbar.addAction(button_action)
@@ -98,7 +100,7 @@ class DictionaryWindow(QMainWindow):
         self.widgetTopRight = QWidget()
         self.layoutVWidgetRight.addWidget(self.widgetTopRight)
         self.widgetRight.setLayout(self.layoutVWidgetRight)
-        self.iconSound = QIcon('Icons/speaker-32.png')
+        self.iconSound = create_icon('sound')
         self.buttonSound = QPushButton(self.iconSound, '')
         self.buttonSound.clicked.connect(self.playSound)
         self.labelWord = QLabel('')
@@ -106,15 +108,22 @@ class DictionaryWindow(QMainWindow):
         self.labelWord.setStyleSheet("font: 17pt")
 
         self.labelTranscription = QLabel('')
-        self.labelTranscription.setStyleSheet('font: 15pt Georgia; color: lightGrey')
+        self.labelTranscription.setStyleSheet('font: 15pt Georgia; color: DarkGrey')
         # self.iconAdd = QIcon('Icons/plus-5-64.png')
-        self.iconTest = QIcon.fromTheme('edit-undo')
-        self.buttonAdd = QPushButton(self.iconTest, '')
+        # self.iconTest = QIcon.fromTheme('edit-undo')
+        _icon_plus = create_icon('plus')
+        _icon_save_db = create_icon('save_db')
+        self.buttonAdd = QPushButton(_icon_plus, '')
+        self.buttonAdd.clicked.connect(self.add_translate)
+        self.button_save_db = QPushButton(_icon_save_db, '')
+        self.button_save_db.clicked.connect(self.save_to_db)
+        self.button_save_db.setVisible(False)
         self.layoutHWidgetTopRight = QHBoxLayout()
         self.layoutHWidgetTopRight.addWidget(self.buttonSound)
         self.layoutHWidgetTopRight.addWidget(self.labelWord, stretch=3)
         self.layoutHWidgetTopRight.addWidget(self.labelTranscription, stretch=3)
         self.layoutHWidgetTopRight.addWidget(self.buttonAdd)
+        self.layoutHWidgetTopRight.addWidget(self.button_save_db)
         self.widgetTopRight.setLayout(self.layoutHWidgetTopRight)
         self.widgetForTree = QWidget()
         self.layoutForTree = QHBoxLayout()
@@ -138,6 +147,14 @@ class DictionaryWindow(QMainWindow):
     def onMyToolBarButtonClick(self, s):
         self.windowParent.show()
         self.hide()
+
+    def add_translate(self):
+        if not self.button_save_db.isVisible():
+            self.button_save_db.setVisible(True)
+
+    def save_to_db(self):
+        if self.button_save_db.isVisible():
+            self.button_save_db.setVisible(False)
 
     def load(self):
         self.model.words = select_data(self)
