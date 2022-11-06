@@ -1,19 +1,19 @@
 import re
+import os
 from typing import Any
-from Views.MessageBoxess import *
 import PySide6
-from PySide6 import QtCore
-from PySide6.QtCore import QSize, QRect, Qt, Slot, QItemSelection
-from PySide6.QtGui import QPalette, QColor, QAction, QIcon, QMouseEvent, QStandardItemModel, QStandardItem, QFont, \
-    QBrush
-from PySide6.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QHBoxLayout, QToolBar, QListWidget, QListView, \
-    QLineEdit, QTreeView, QTableView, QPushButton, QLabel
+from PySide6.QtCore import QSize, Qt, Slot, QItemSelection, QUrl
+from PySide6.QtGui import QPalette, QAction, QStandardItemModel, QStandardItem, QFont
+from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
+from PySide6.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QHBoxLayout, QToolBar, QListView, \
+    QLineEdit, QTreeView, QPushButton, QLabel
+
+from DataSettings import create_icon, list_resources, window_title
 from Models.WordsModel import Words
 from Servise.Db.Sqlite.SqliteApplication import select_data
-from main import create_icon
+from Servise.Variable import minSizeWindow
+from Views.MessageBoxess import *
 
-import main
-from Servise.Variable import minSizeWindow, maxSizeWindow
 
 regx_pattern = r'\w+\s?\(\w+\)'
 regx_split_pattern = r'\s?\('
@@ -53,7 +53,11 @@ class DictionaryWindow(QMainWindow):
         super(DictionaryWindow, self).__init__()
         self.text_lineEdit = ''
         self._standard_model = None
-        self.setWindowTitle("Dictionary")
+        self._current_sound_file = ''
+        self._player = QMediaPlayer()
+        self.audioOutput = QAudioOutput()
+        self._player.setAudioOutput(self.audioOutput)
+        self.setWindowTitle(window_title)
         self.geometryWindow = geometryWindow
         self.setGeometry(self.geometryWindow)
         self.windowParent = widowParent
@@ -171,9 +175,14 @@ class DictionaryWindow(QMainWindow):
         listSelectedIndex = self.listW.selectedIndexes()
         index = listSelectedIndex[0]
         listData = self.model.words[index.row()]
-        data = listData[1]
-        wordId = listData[0]
-        self.setData(wordId, data)
+        _word_id = listData[0]
+        _word = listData[1]
+        _sound_name = listData[2]
+        self.setData(_word_id, _word)
+        _path_audio = list_resources[0]
+        self._current_sound_file = os.path.join(os.path.abspath(_path_audio), _sound_name)
+        print(f"self._current_sound_file: {self._current_sound_file}")
+
 
     def test(self):
         print("hello")
@@ -214,7 +223,8 @@ class DictionaryWindow(QMainWindow):
         selection_model.selectionChanged.connect(self.selection_changed_slot)
 
     def playSound(self):
-        print(self.current_sound)
+        self._player.setSource(QUrl.fromLocalFile(self._current_sound_file))
+        self._player.play()
 
     @Slot(QItemSelection, QItemSelection)
     def selection_changed_slot(self, new_selection, old_selection):

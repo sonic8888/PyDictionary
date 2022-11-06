@@ -11,7 +11,7 @@ class Words(QtCore.QAbstractListModel):
         row = index.row()
         col = index.column()
         if role == Qt.DisplayRole:
-            _, text = self.words[index.row()]
+            _, text, sound = self.words[index.row()]
             return text
         elif role == Qt.FontRole:
             if col == 0:  # change font only for cell(0,0)

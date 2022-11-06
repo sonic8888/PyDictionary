@@ -2,10 +2,11 @@ import PySide6
 from PySide6.QtCore import QSize, SIGNAL
 from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QHBoxLayout, QToolBar, QMessageBox
+
+from DataSettings import create_icon
 from Servise.Variable import minSizeWindow
 from Views.Buttons import Button
 from Views.DictionaryGui import DictionaryWindow
-from main import create_icon
 
 
 class HomeWindows(QMainWindow):

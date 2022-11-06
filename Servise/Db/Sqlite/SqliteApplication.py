@@ -36,7 +36,7 @@ translates_table_create = '''(
 );'''
 con = None
 
-select_words_for_model = 'SELECT DISTINCT WordId, Word FROM Words ORDER BY Word'
+select_words_for_model = 'SELECT DISTINCT WordId, Word, SoundName FROM Words ORDER BY Word'
 select = "SELECT DISTINCT SoundName, Word FROM Words WHERE Word LIKE '{:s}%' ORDER BY Word"
 select_word = "SELECT Word, Transcription, SoundName FROM Words WHERE WordId = {:d}"
 select_translates = "SELECT TranslateId, Translate, PartOfSpeach FROM Translates WHERE WordId = {:d}"
