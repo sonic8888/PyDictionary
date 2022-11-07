@@ -6,14 +6,13 @@ from PySide6.QtCore import QSize, Qt, Slot, QItemSelection, QUrl
 from PySide6.QtGui import QPalette, QAction, QStandardItemModel, QStandardItem, QFont
 from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
 from PySide6.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QHBoxLayout, QToolBar, QListView, \
-    QLineEdit, QTreeView, QPushButton, QLabel
+    QLineEdit, QTreeView, QPushButton, QLabel, QGridLayout
 
 from DataSettings import create_icon, list_resources, window_title
 from Models.WordsModel import Words
 from Servise.Db.Sqlite.SqliteApplication import select_data
 from Servise.Variable import minSizeWindow
 from Views.MessageBoxess import *
-
 
 regx_pattern = r'\w+\s?\(\w+\)'
 regx_split_pattern = r'\s?\('
@@ -95,12 +94,28 @@ class DictionaryWindow(QMainWindow):
         self.leftWidget.setLayout(self.layoutH_V)
         self.layoutH.addWidget(self.leftWidget, stretch=1)
         self.treeview = QTreeView()
+        self.widget_bottom_right = QWidget()
+        self.layout_grid_bottom_right = QGridLayout()
+        _label_part_of_speach = QLabel('часть речи:')
+        _label_translate = QLabel('перевод:')
+        _label_example = QLabel('пример:')
+        self._line_part_of_speach = QLineEdit()
+        self._line_translate = QLineEdit()
+        self._line_example = QLineEdit()
+        self.layout_grid_bottom_right.addWidget(_label_part_of_speach, 0, 0)
+        self.layout_grid_bottom_right.addWidget(_label_translate, 1, 0)
+        self.layout_grid_bottom_right.addWidget(_label_example, 2, 0)
+        self.layout_grid_bottom_right.addWidget(self._line_part_of_speach, 0, 1)
+        self.layout_grid_bottom_right.addWidget(self._line_translate, 1, 1)
+        self.layout_grid_bottom_right.addWidget(self._line_example, 2, 1)
+        self.widget_bottom_right.setLayout(self.layout_grid_bottom_right)
+        self.widget_bottom_right.setHidden(True)
         # self.treeview.setModel(self._standard_model)
         self.treeview.setHeaderHidden(True)
 
         # self.treeview.expandAll()
         self.widgetRight = QWidget()
-        self.layoutVWidgetRight = QVBoxLayout()
+        self.layoutVWidgetRight = QVBoxLayout()  # правый вертикальный макет
         self.widgetTopRight = QWidget()
         self.layoutVWidgetRight.addWidget(self.widgetTopRight)
         self.widgetRight.setLayout(self.layoutVWidgetRight)
@@ -135,6 +150,7 @@ class DictionaryWindow(QMainWindow):
         self.widgetForTree.setLayout(self.layoutForTree)
         self.layoutForTree.setContentsMargins(10, 0, 0, 0)
         self.layoutVWidgetRight.addWidget(self.widgetForTree, stretch=9)
+        self.layoutVWidgetRight.addWidget(self.widget_bottom_right)
         self.layoutH.addWidget(self.widgetRight, stretch=2)
 
         self.current_sound = ''
@@ -155,6 +171,10 @@ class DictionaryWindow(QMainWindow):
     def add_translate(self):
         if not self.button_save_db.isVisible():
             self.button_save_db.setVisible(True)
+        if self.widget_bottom_right.isHidden():
+            self.widget_bottom_right.setHidden(False)
+        else:
+            self.widget_bottom_right.setHidden(True)
 
     def save_to_db(self):
         if self.button_save_db.isVisible():
@@ -182,7 +202,6 @@ class DictionaryWindow(QMainWindow):
         _path_audio = list_resources[0]
         self._current_sound_file = os.path.join(os.path.abspath(_path_audio), _sound_name)
         print(f"self._current_sound_file: {self._current_sound_file}")
-
 
     def test(self):
         print("hello")
@@ -223,7 +242,8 @@ class DictionaryWindow(QMainWindow):
         selection_model.selectionChanged.connect(self.selection_changed_slot)
 
     def playSound(self):
-        self._player.setSource(QUrl.fromLocalFile(self._current_sound_file))
+        _file = QUrl.fromLocalFile(self._current_sound_file)
+        self._player.setSource(_file)
         self._player.play()
 
     @Slot(QItemSelection, QItemSelection)
