@@ -18,6 +18,24 @@ regx_pattern = r'\w+\s?\(\w+\)'
 regx_split_pattern = r'\s?\('
 
 
+class TreeView(QTreeView):
+    def __init__(self):
+        super(TreeView, self).__init__()
+
+    def mousePressEvent(self, e):
+        super(TreeView, self).mousePressEvent(e)
+        if e.button() == Qt.MouseButton.RightButton:
+            index = self.selectedIndexes()
+            index = index[0]
+            item = self.model().item(index.row(), 0)
+            item.removeRow(0)
+            self.model().layoutChanged.emit()
+            # del item
+            # model.layoutChanged.emit()
+            # root = self.model().invisibleRootItem()
+            # print(root.hasChildren())
+
+
 class TranslateItem(QStandardItem):
     def __init__(self, window, words=None, *args, **kwargs):
         super(TranslateItem, self).__init__(*args, **kwargs)
@@ -41,7 +59,7 @@ class TranslateItem(QStandardItem):
                 self.words = _list_val
             else:
                 print()
-                message_critical_(self.window, 'No Match!')
+                message_critical_(self.window, 'укажите "перевод слова" и "часть речи" в скобках')
 
     def type(self) -> int:
         return 13456794
@@ -125,6 +143,10 @@ class DictionaryWindow(QMainWindow):
         self.labelWord = QLabel('')
         self.labelWord.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.labelWord.setStyleSheet("font: 17pt")
+        _icon_delete = create_icon('delete')
+        # self.action_delete = QAction(_icon_delete, 'delete', self)
+        # self.action_delete.setStatusTip('delete selected item')
+        # self.action_delete.triggered.connect(self.delete)
 
         self.labelTranscription = QLabel('')
         self.labelTranscription.setStyleSheet('font: 15pt Georgia; color: DarkGrey')
@@ -133,6 +155,9 @@ class DictionaryWindow(QMainWindow):
         _icon_plus = create_icon('plus')
         _icon_save_db = create_icon('save_db')
         self.buttonAdd = QPushButton(_icon_plus, '')
+        self.button_delete = QPushButton(_icon_delete, '')
+        self.button_delete.clicked.connect(self.delete)
+
         self.buttonAdd.clicked.connect(self.add_translate)
         self.button_save_db = QPushButton(_icon_save_db, '')
         self.button_save_db.clicked.connect(self.save_to_db)
@@ -143,6 +168,7 @@ class DictionaryWindow(QMainWindow):
         self.layoutHWidgetTopRight.addWidget(self.labelTranscription, stretch=3)
         self.layoutHWidgetTopRight.addWidget(self.buttonAdd)
         self.layoutHWidgetTopRight.addWidget(self.button_save_db)
+        self.layoutHWidgetTopRight.addWidget(self.button_delete)
         self.widgetTopRight.setLayout(self.layoutHWidgetTopRight)
         self.widgetForTree = QWidget()
         self.layoutForTree = QHBoxLayout()
@@ -238,8 +264,8 @@ class DictionaryWindow(QMainWindow):
         root_node.appendRow(word_item)
         self.treeview.setModel(self._standard_model)
         self._standard_model.layoutChanged.emit()
-        selection_model = self.treeview.selectionModel()
-        selection_model.selectionChanged.connect(self.selection_changed_slot)
+        # selection_model = self.treeview.selectionModel()
+        # selection_model.selectionChanged.connect(self.selection_changed_slot)
 
     def playSound(self):
         _file = QUrl.fromLocalFile(self._current_sound_file)
@@ -248,4 +274,12 @@ class DictionaryWindow(QMainWindow):
 
     @Slot(QItemSelection, QItemSelection)
     def selection_changed_slot(self, new_selection, old_selection):
-        print("selection_changed_slot")
+        print(old_selection)
+
+    @Slot()
+    def delete(self):
+        _indexes = self.treeview.selectedIndexes()
+        if _indexes:
+            _index = _indexes[0].parent()
+            self._standard_model.removeRow(0, _index)
+            self._standard_model.layoutChanged.emit()

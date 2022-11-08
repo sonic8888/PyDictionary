@@ -18,5 +18,9 @@
   "save_db": {
     "Themas.LIGHT": "database_dark.png",
     "Themas.DARK": "database_white.png"
+  },
+  "delete": {
+    "Themas.LIGHT": "delete_dark.png",
+    "Themas.DARK": "delete_white.png"
   }
 }
