@@ -83,6 +83,7 @@ class DictionaryWindow(QMainWindow):
         self.setMinimumSize(minSize)
         self.toolbar = QToolBar("toolbar")
         self.addToolBar(self.toolbar)
+        self.current_word_id = 0
         # QAction
         _icon_home = create_icon('home')
         button_action = QAction(_icon_home, "Your button", self)
@@ -227,12 +228,9 @@ class DictionaryWindow(QMainWindow):
         self.setData(_word_id, _word)
         _path_audio = list_resources[0]
         self._current_sound_file = os.path.join(os.path.abspath(_path_audio), _sound_name)
-        print(f"self._current_sound_file: {self._current_sound_file}")
-
-    def test(self):
-        print("hello")
 
     def setData(self, idWord, word):
+        self.current_word_id = idWord
         self._standard_model = QStandardItemModel(self)
         root_node = self._standard_model.invisibleRootItem()
 
@@ -283,3 +281,16 @@ class DictionaryWindow(QMainWindow):
             _index = _indexes[0].parent()
             self._standard_model.removeRow(0, _index)
             self._standard_model.layoutChanged.emit()
+
+    @Slot
+    def save_to_db(self):
+        root_node = self._standard_model.invisibleRootItem()
+        _word_item = root_node.child(0, 0)
+        text = _word_item.text()
+        for i in range(_word_item.rowCount()):
+            _translate_item = _word_item.child(i)
+            if type(_translate_item) == TranslateItem:
+                words = _translate_item.words
+                for k in range(_translate_item.rowCount()):
+                    _example_item = _translate_item.child(k)
+                    item_text = _example_item.text()
