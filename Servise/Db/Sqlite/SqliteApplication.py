@@ -39,9 +39,21 @@ con = None
 select_words_for_model = 'SELECT DISTINCT WordId, Word, SoundName FROM Words ORDER BY Word'
 select = "SELECT DISTINCT SoundName, Word FROM Words WHERE Word LIKE '{:s}%' ORDER BY Word"
 select_word = "SELECT Word, Transcription, SoundName FROM Words WHERE WordId = {:d}"
-select_translates = "SELECT TranslateId, Translate, PartOfSpeach FROM Translates WHERE WordId = {:d}"
-select_examples = "SELECT Example FROM Examples WHERE TranslateId = {:d}"
-list_sql_query = [select_words_for_model, select, select_word, select_translates, select_examples]
+select_translate = "SELECT TranslateId, Translate, PartOfSpeach FROM Translates WHERE WordId = {:d}"
+select_example = "SELECT Example FROM Examples WHERE TranslateId = {:d}"
+delete_example = 'DELETE FROM Examples WHERE TranslateId = {:d}'
+delete_translate = 'DELETE FROM Translates WHERE TranslateId = {:d}'
+delete_word = 'DELETE FROM Words WHERE WordId = {:d}'
+
+list_sql_query = [select_words_for_model, select, select_word, select_translate, select_example, delete_example,
+                  delete_translate, delete_word]
+
+_list_words_for_model = ['WordId', 'Word', 'SoundName', 'Words']
+_list_select = ['SoundName', 'Word', 'Words']
+_list_select_word = ['Word', 'Transcription', 'SoundName', 'Words']
+_list_select_translates = ['TranslateId', 'Translate', 'PartOfSpeach', 'Translates']
+_list_select_examples = ['Example', 'Examples']
+_list_keys = [_list_words_for_model, _list_select, _list_select_word, _list_select_translates, _list_select_examples]
 
 
 def create_empty_tables(window):
@@ -63,7 +75,7 @@ def is_db_exist():
     return os.path.exists(db_path_name)
 
 
-def select_data(window, index=0, value=None):
+def select_data(window=None, index=0, value=None):
     global con
     if index < len(list_sql_query):
         if value:
@@ -78,25 +90,67 @@ def select_data(window, index=0, value=None):
             list_data = cur.fetchall()
             return list_data
         except Error as er:
-            message_error = er.__str__()
-            QMessageBox.critical(window, 'Error', message_error)
+            if window:
+                message_error = er.__str__()
+                QMessageBox.critical(window, 'Error', message_error)
+            else:
+                print(er)
         finally:
             con.close()
     else:
         print('index out of range')
 
 
+def change_data(window=None, index=0, value=None):
+    global con
+    if index < len(list_sql_query):
+        if value:
+            query = list_sql_query[index]
+            query = query.format(value)
+        else:
+            query = list_sql_query[index]
+        try:
+            con = sqlite3.connect(db_path_name)
+            cur = con.cursor()
+            cur.execute(query)
+            con.commit()
+        except Error as er:
+            if window:
+                message_error = er.__str__()
+                QMessageBox.critical(window, 'Error', message_error)
+            else:
+                print(er)
+        finally:
+            con.close()
+    else:
+        print('index out of range')
+
+
+def create_dictionary(window=None, index=0, value=None):
+    _list_data = select_data(window, index, value)
+    print(_list_data)
+
+
 def test(sqlQuery):
     global con
     try:
-        con = sqlite3.connect(db_path_name)
+        con = sqlite3.connect(r'D:\Documents\PythonProjects\PyDictionary\mobiles.db')
         cur = con.cursor()
         cur.execute(sqlQuery)
-        list_data = cur.fetchall()
-        return list_data
+        con.commit()
+        # list_data = cur.fetchall()
+        # print(list_data)
+        # return list_data
     except Exception as er:
         # message_error = er.__str__()
         # QMessageBox.critical(window, 'Error', message_error)
         print(er)
     finally:
         con.close()
+
+
+# create_dictionary(index=3, value=1)
+# test(select_words_for_model)
+sql_query = "DELETE FROM Examples WHERE TranslateId = 4"
+_test_sql = 'SELECT * FROM Examples WHERE TranslateId = 4'
+test(sql_query)

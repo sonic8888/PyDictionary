@@ -2,15 +2,16 @@ import re
 import os
 from typing import Any
 import PySide6
+from PySide6 import QtGui
 from PySide6.QtCore import QSize, Qt, Slot, QItemSelection, QUrl
 from PySide6.QtGui import QPalette, QAction, QStandardItemModel, QStandardItem, QFont
 from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
 from PySide6.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QHBoxLayout, QToolBar, QListView, \
-    QLineEdit, QTreeView, QPushButton, QLabel, QGridLayout
+    QLineEdit, QTreeView, QPushButton, QLabel, QGridLayout, QMessageBox
 
 from DataSettings import create_icon, list_resources, window_title
 from Models.WordsModel import Words
-from Servise.Db.Sqlite.SqliteApplication import select_data
+from Servise.Db.Sqlite.SqliteApplication import select_data, change_data
 from Servise.Variable import minSizeWindow
 from Views.MessageBoxess import *
 
@@ -18,22 +19,53 @@ regx_pattern = r'\w+\s?\(\w+\)'
 regx_split_pattern = r'\s?\('
 
 
-class TreeView(QTreeView):
-    def __init__(self):
-        super(TreeView, self).__init__()
+class CustomItem(QStandardItem):
+    def __init__(self, window, name, list_key, key_word, parent=None, *args, **kwargs):
+        super(CustomItem, self).__init__(*args, **kwargs)
+        self.list_key = list_key
+        self.key_word = key_word
+        self.window = window
+        self.name = name
+        self.parent = parent
 
-    def mousePressEvent(self, e):
-        super(TreeView, self).mousePressEvent(e)
-        if e.button() == Qt.MouseButton.RightButton:
-            index = self.selectedIndexes()
-            index = index[0]
-            item = self.model().item(index.row(), 0)
-            item.removeRow(0)
-            self.model().layoutChanged.emit()
-            # del item
-            # model.layoutChanged.emit()
-            # root = self.model().invisibleRootItem()
-            # print(root.hasChildren())
+    def data(self, role: int = ...) -> Any:
+        if role == Qt.DisplayRole:
+            if len(self.list_key) == 2:
+                text = '{} ({})'.format(self.key_word[self.list_key[0]], self.key_word[self.list_key[1]])
+                return text
+            else:
+                text = self.key_word[self.list_key[0]]
+                return text
+        if role == Qt.FontRole:
+            if self.name == 'Translate':
+                font = QFont()
+                font.setPointSize(15)
+                return font
+            else:
+                font = QFont()
+                font.setPointSize(12)
+                font.setItalic(True)
+                return font
+        # if role == Qt.ForegroundRole:
+        #     if self.name == 'Example':
+        #         return QtGui.QColor('red')
+
+    def setData(self, value: Any, role: int = ...) -> None:
+        if role == Qt.EditRole:
+            if len(self.list_key) == 2:
+                if re.fullmatch(regx_pattern, value):
+                    _list_val = re.split(regx_split_pattern, value)
+                    _list_val[1] = _list_val[1][:-1]
+                    self.key_word[self.list_key[0]] = _list_val[0]
+                    self.key_word[self.list_key[1]] = _list_val[1]
+                else:
+                    print()
+                    message_critical_(self.window, 'укажите "перевод слова" и "часть речи" в скобках')
+            else:
+                self.key_word[self.list_key[0]] = value
+
+    def type(self) -> int:
+        return 134567
 
 
 class TranslateItem(QStandardItem):
@@ -44,7 +76,7 @@ class TranslateItem(QStandardItem):
 
     def data(self, role: int = ...) -> Any:
         if role == Qt.DisplayRole:
-            text = '{} ({})'.format(self.words[0], self.words[1])
+            text = '{} ({})'.format(self.words[1], self.words[2])
             return text
         if role == Qt.FontRole:
             font = QFont()
@@ -71,6 +103,7 @@ class DictionaryWindow(QMainWindow):
         self.text_lineEdit = ''
         self._standard_model = None
         self._current_sound_file = ''
+        self._current_word_id = 0
         self._player = QMediaPlayer()
         self.audioOutput = QAudioOutput()
         self._player.setAudioOutput(self.audioOutput)
@@ -83,7 +116,6 @@ class DictionaryWindow(QMainWindow):
         self.setMinimumSize(minSize)
         self.toolbar = QToolBar("toolbar")
         self.addToolBar(self.toolbar)
-        self.current_word_id = 0
         # QAction
         _icon_home = create_icon('home')
         button_action = QAction(_icon_home, "Your button", self)
@@ -230,7 +262,7 @@ class DictionaryWindow(QMainWindow):
         self._current_sound_file = os.path.join(os.path.abspath(_path_audio), _sound_name)
 
     def setData(self, idWord, word):
-        self.current_word_id = idWord
+        self._current_word_id = idWord
         self._standard_model = QStandardItemModel(self)
         root_node = self._standard_model.invisibleRootItem()
 
@@ -248,22 +280,21 @@ class DictionaryWindow(QMainWindow):
         list_data = select_data(self, 3, idWord)
         for i in range(len(list_data)):
             m_tuple = list_data[i]
-            list_translate_speach = [m_tuple[1], m_tuple[2]]
-            translate_item = TranslateItem(self, list_translate_speach)
+            _list_key_translate = ['Translate', 'PartOfSpeach']
+            _key_word_translate = {'TranslateId': m_tuple[0], 'Translate': m_tuple[1], 'PartOfSpeach': m_tuple[2],
+                                   'TableName': 'Translates'}
+            translate_item = CustomItem(self, 'Translate', _list_key_translate, _key_word_translate, word_item)
             list_ex = select_data(self, 4, m_tuple[0])
             for k in range(len(list_ex)):
                 tuple_ex = list_ex[k]
-                example_item = QStandardItem(tuple_ex[0])
-                font_ex = example_item.font()
-                font_ex.setPointSize(12)
-                example_item.setFont(font_ex)
+                _list_key_example = ['Example']
+                _key_word_example = {'TranslateId': m_tuple[0], 'Example': tuple_ex[0], 'TableName': 'Examples'}
+                example_item = CustomItem(self, 'Example', _list_key_example, _key_word_example, translate_item)
                 translate_item.setChild(k, 0, example_item)
             word_item.setChild(i, 0, translate_item)
         root_node.appendRow(word_item)
         self.treeview.setModel(self._standard_model)
         self._standard_model.layoutChanged.emit()
-        # selection_model = self.treeview.selectionModel()
-        # selection_model.selectionChanged.connect(self.selection_changed_slot)
 
     def playSound(self):
         _file = QUrl.fromLocalFile(self._current_sound_file)
@@ -278,11 +309,25 @@ class DictionaryWindow(QMainWindow):
     def delete(self):
         _indexes = self.treeview.selectedIndexes()
         if _indexes:
+            button = messageBox_question(self, 'Вы точно хотите удалить выбранное?')
+            if button == QMessageBox.No:
+                return
+            _item = self._standard_model.itemFromIndex(_indexes[0])
+            if type(_item) == CustomItem:
+                if _item.name == 'Translate':
+                    change_data(self, 6, _item.key_word['TranslateId'])
+                else:
+                    _translate_id = _item.parent.key_word['TranslateId']
+                    change_data(self, 5, _translate_id)
+            else:
+                change_data(self, 7, self._current_word_id)
             _index = _indexes[0].parent()
             self._standard_model.removeRow(0, _index)
             self._standard_model.layoutChanged.emit()
+        else:
+            messageBox_warning(self, 'ничего не выбрано')
 
-    @Slot
+    @Slot()
     def save_to_db(self):
         root_node = self._standard_model.invisibleRootItem()
         _word_item = root_node.child(0, 0)
@@ -294,3 +339,11 @@ class DictionaryWindow(QMainWindow):
                 for k in range(_translate_item.rowCount()):
                     _example_item = _translate_item.child(k)
                     item_text = _example_item.text()
+
+    def test(self):
+        _indexes = self.treeview.selectedIndexes()
+        _index = _indexes[0]
+        _data = self._standard_model.data(_index)
+        print(_data)
+        _item = self._standard_model.itemFromIndex(_index)
+        print(_item)
