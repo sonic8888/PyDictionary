@@ -36,17 +36,19 @@ translates_table_create = '''(
 );'''
 con = None
 
-select_words_for_model = 'SELECT DISTINCT WordId, Word, SoundName FROM Words ORDER BY Word'
-select = "SELECT DISTINCT SoundName, Word FROM Words WHERE Word LIKE '{:s}%' ORDER BY Word"
+select_words_for_model = 'SELECT  WordId, Word, SoundName FROM Words ORDER BY Word'
+select = "SELECT  WordId, Word, SoundName FROM Words WHERE Word LIKE '{:s}%' ORDER BY Word"
 select_word = "SELECT Word, Transcription, SoundName FROM Words WHERE WordId = {:d}"
 select_translate = "SELECT TranslateId, Translate, PartOfSpeach FROM Translates WHERE WordId = {:d}"
 select_example = "SELECT Example FROM Examples WHERE TranslateId = {:d}"
 delete_example = 'DELETE FROM Examples WHERE TranslateId = {:d}'
 delete_translate = 'DELETE FROM Translates WHERE TranslateId = {:d}'
 delete_word = 'DELETE FROM Words WHERE WordId = {:d}'
+update_translate = "UPDATE Translates SET Translate = '{:s}', PartOfSpeach = '{:s}' WHERE TranslateId = {:d}"
+update_example = "UPDATE Examples SET Example = '{:s}' WHERE TranslateId = {:d}"
 
 list_sql_query = [select_words_for_model, select, select_word, select_translate, select_example, delete_example,
-                  delete_translate, delete_word]
+                  delete_translate, delete_word, update_translate, update_example]
 
 _list_words_for_model = ['WordId', 'Word', 'SoundName', 'Words']
 _list_select = ['SoundName', 'Word', 'Words']
@@ -97,11 +99,12 @@ def select_data(window=None, index=0, value=None):
                 print(er)
         finally:
             con.close()
+
     else:
         print('index out of range')
 
 
-def change_data(window=None, index=0, value=None):
+def delete_data(window=None, index=0, value=None):
     global con
     if index < len(list_sql_query):
         if value:
@@ -122,6 +125,32 @@ def change_data(window=None, index=0, value=None):
                 print(er)
         finally:
             con.close()
+    else:
+        print('index out of range')
+
+
+def update_data(index, name, translate_id, window=None, translate=None, part_of_speach=None, example=None):
+    global con
+    query = ''
+    if index < len(list_sql_query):
+        if name == 'Translate':
+            query = list_sql_query[index].format(translate, part_of_speach, translate_id)
+        else:
+            query = list_sql_query[index].format(example, translate_id)
+        try:
+            con = sqlite3.connect(db_path_name)
+            cur = con.cursor()
+            cur.execute(query)
+            con.commit()
+        except Error as er:
+            if window:
+                message_error = er.__str__()
+                QMessageBox.critical(window, 'Error', message_error)
+            else:
+                print(er)
+        finally:
+            con.close()
+
     else:
         print('index out of range')
 

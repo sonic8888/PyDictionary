@@ -1,105 +1,34 @@
-import sys, os
-
-from typing import Any
-import re
-from enum import Enum
-from PySide6.QtGui import QStandardItemModel, QStandardItem, QIcon, QPixmap
-from Servise.Db.Sqlite.SqliteApplication import test
-from PySide6.QtCore import QSize, Qt, Slot, QItemSelection
-from PySide6.QtWidgets import QApplication, QMainWindow, QPushButton, QWidget, QVBoxLayout, QLabel, QListView
-
+select_words_for_model = 'SELECT DISTINCT WordId, Word, SoundName FROM Words ORDER BY Word'
+select = "SELECT DISTINCT SoundName, Word FROM Words WHERE Word LIKE '{:s}%' ORDER BY Word"
 select_word = "SELECT Word, Transcription, SoundName FROM Words WHERE WordId = {:d}"
-select_translates = "SELECT TranslateId, Translate, PartOfSpeach FROM Translates WHERE WordId = {:d}"
-select_examples = "SELECT Example FROM Examples WHERE TranslateId = {:d}"
+select_translate = "SELECT TranslateId, Translate, PartOfSpeach FROM Translates WHERE WordId = {:d}"
+select_example = "SELECT Example FROM Examples WHERE TranslateId = {:d}"
+delete_example = 'DELETE FROM Examples WHERE TranslateId = {:d}'
+delete_translate = 'DELETE FROM Translates WHERE TranslateId = {:d}'
+delete_word = 'DELETE FROM Words WHERE WordId = {:d}'
+update_translate = "UPDATE Translates SET Translate = '{:s}', PartOfSpeach = '{:s}' WHERE TranslateId = {:d}"
+update_example = "UPDATE Examples SET Example = '{:s}' WHERE TranslateId = {:d}"
 
-regx_pattern = r'\w+\s?\(\w+\)'
-regx_split_pattern = r'\s?\('
-
-
-def select_from_db():
-    my_typle = test(select_word.format(1))
-    print(my_typle)
-
-
-class MyItem(QStandardItem):
-    def __init__(self, words=None, *args, **kwargs):
-        super(MyItem, self).__init__(*args, **kwargs)
-        self.words = words or []
-
-    def data(self, role: int = ...) -> Any:
-        if role == Qt.DisplayRole:
-            text = '{} ({})'.format(self.words[0], self.words[1])
-            return text
-
-    def setData(self, value: Any, role: int = ...) -> None:
-        if role == Qt.EditRole:
-            if re.fullmatch(regx_pattern, value):
-                _list_val = re.split(regx_split_pattern, value)
-                _list_val[1] = _list_val[1][:-1]
-                self.words = _list_val
-            else:
-                print('No Match!')
+list_sql_query = [select_words_for_model, select, select_word, select_translate, select_example, delete_example,
+                  delete_translate, delete_word, update_translate, update_example]
 
 
-class MainWindow(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        icon = QIcon('Icons/database_dark.png')
-        self._standard_model = QStandardItemModel(self)
-        self.root_node = self._standard_model.invisibleRootItem()
-        self.item1 = QStandardItem("one")
-        # self.item2 = QStandardItem()
-        # self.item2.setData("Two", Qt.DisplayRole)
-        self.item2 = MyItem(['addition', 'сущ'])
-        self.item3 = QStandardItem("Three")
-        self.root_node.appendRow(self.item1)
-        self.root_node.appendRow(self.item2)
-        self.root_node.appendRow(self.item3)
-        self.layout = QVBoxLayout()
-        pm = QPixmap('Icons/database_dark.png')
-        self.label = QLabel("test")
-        self.label.setPixmap(pm)
-        self.label.setWindowIcon(icon)
-        self.listView = QListView()
-        self.listView.setModel(self._standard_model)
-        self.button = QPushButton(icon,"Press ME")
-        # self.button.setWindowIcon(icon)
-        self.button.clicked.connect(self.clicked)
-        self.layout.addWidget(self.label)
-        self.layout.addWidget(self.listView)
-        self.layout.addWidget(self.button)
-        widjet_icon = QWidget()
-        widjet_icon.setWindowIcon(icon)
-        self.layout.addWidget(widjet_icon)
-        self.widget = QWidget()
-        self.selection_model = self.listView.selectionModel()
-        self.selection_model.selectionChanged.connect(self.selection_changed_slot)
-        self.widget.setLayout(self.layout)
-        self.setCentralWidget(self.widget)
-        self.index = None
+def displey(index, name, translate_id, window=None, translate=None, part_of_speach=None, example=None):
+    _sql = ''
+    if name == 'Translate':
+        _sql = list_sql_query[index].format(translate, part_of_speach, translate_id)
+    else:
+        _sql = list_sql_query[index].format(example, translate_id)
 
-    @Slot(QItemSelection, QItemSelection)
-    def selection_changed_slot(self, new_selection, old_selection):
-        self.index = self.selection_model.currentIndex()
-        # selected_text = index.data(Qt.DisplayRole)
-        # hierarchy_level = 1
-        # seek_root = index
-        # while seek_root.parent().isValid():
-        #     seek_root = seek_root.parent()
-        #     hierarchy_level += 1
-        #     print(seek_root)
-        #     print(hierarchy_level)
-
-    def clicked(self):
-        # model = self.listView.model()
-        # strr = model.data(self.index)
-        print(self.index.row())
-        child = self.root_node.child(self.index.row(), 0)
+    print(_sql)
 
 
-app = QApplication(sys.argv)
-
-window = MainWindow()
-window.show()
-
-app.exec()
+if __name__ == "__main__":
+    _translate = 'добавить'
+    _example = """I can't move, Tracy thought. I'll stay here.
+Я не могу двигаться, подумала Трейси. Я останусь здесь."""
+    _part_of_speach = 'сущ'
+    _id = 2
+    _name = 'Translates'
+    displey(index=9, name=_name, translate_id=_id, translate=_translate, part_of_speach=_part_of_speach,
+            example=_example)

@@ -3,6 +3,7 @@ import os
 from typing import Any
 import PySide6
 from PySide6 import QtGui
+from PySide6.QtCore import QObject, Signal, Slot
 from PySide6.QtCore import QSize, Qt, Slot, QItemSelection, QUrl
 from PySide6.QtGui import QPalette, QAction, QStandardItemModel, QStandardItem, QFont
 from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
@@ -11,7 +12,7 @@ from PySide6.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QHBoxLayout, QT
 
 from DataSettings import create_icon, list_resources, window_title
 from Models.WordsModel import Words
-from Servise.Db.Sqlite.SqliteApplication import select_data, change_data
+from Servise.Db.Sqlite.SqliteApplication import select_data, delete_data, update_data
 from Servise.Variable import minSizeWindow
 from Views.MessageBoxess import *
 
@@ -20,6 +21,7 @@ regx_split_pattern = r'\s?\('
 
 
 class CustomItem(QStandardItem):
+
     def __init__(self, window, name, list_key, key_word, parent=None, *args, **kwargs):
         super(CustomItem, self).__init__(*args, **kwargs)
         self.list_key = list_key
@@ -46,9 +48,6 @@ class CustomItem(QStandardItem):
                 font.setPointSize(12)
                 font.setItalic(True)
                 return font
-        # if role == Qt.ForegroundRole:
-        #     if self.name == 'Example':
-        #         return QtGui.QColor('red')
 
     def setData(self, value: Any, role: int = ...) -> None:
         if role == Qt.EditRole:
@@ -64,40 +63,23 @@ class CustomItem(QStandardItem):
             else:
                 self.key_word[self.list_key[0]] = value
 
+        if not self.window.button_save_db.isVisible():
+            self.window.button_save_db.setVisible(True)
+
     def type(self) -> int:
         return 134567
 
+    @property
+    def get_list_key(self):
+        return self.list_key
 
-class TranslateItem(QStandardItem):
-    def __init__(self, window, words=None, *args, **kwargs):
-        super(TranslateItem, self).__init__(*args, **kwargs)
-        self.words = words or []
-        self.window = window
-
-    def data(self, role: int = ...) -> Any:
-        if role == Qt.DisplayRole:
-            text = '{} ({})'.format(self.words[1], self.words[2])
-            return text
-        if role == Qt.FontRole:
-            font = QFont()
-            font.setPointSize(15)
-            return font
-
-    def setData(self, value: Any, role: int = ...) -> None:
-        if role == Qt.EditRole:
-            if re.fullmatch(regx_pattern, value):
-                _list_val = re.split(regx_split_pattern, value)
-                _list_val[1] = _list_val[1][:-1]
-                self.words = _list_val
-            else:
-                print()
-                message_critical_(self.window, 'укажите "перевод слова" и "часть речи" в скобках')
-
-    def type(self) -> int:
-        return 13456794
+    @property
+    def get_key_word(self):
+        return self.key_word
 
 
 class DictionaryWindow(QMainWindow):
+
     def __init__(self, geometryWindow, widowParent):
         super(DictionaryWindow, self).__init__()
         self.text_lineEdit = ''
@@ -129,7 +111,7 @@ class DictionaryWindow(QMainWindow):
         self.layoutH_V = QVBoxLayout()
         self.lineEdit = QLineEdit()
         self.lineEdit.textChanged.connect(self.textChanged)
-        self.lineEdit.returnPressed.connect(self.get_data)
+        # self.lineEdit.returnPressed.connect(self.get_data)
         self.layoutH_V.addWidget(self.lineEdit)
 
         self.listW = QListView(self)
@@ -164,7 +146,6 @@ class DictionaryWindow(QMainWindow):
         # self.treeview.setModel(self._standard_model)
         self.treeview.setHeaderHidden(True)
 
-        # self.treeview.expandAll()
         self.widgetRight = QWidget()
         self.layoutVWidgetRight = QVBoxLayout()  # правый вертикальный макет
         self.widgetTopRight = QWidget()
@@ -177,17 +158,14 @@ class DictionaryWindow(QMainWindow):
         self.labelWord.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.labelWord.setStyleSheet("font: 17pt")
         _icon_delete = create_icon('delete')
-        # self.action_delete = QAction(_icon_delete, 'delete', self)
-        # self.action_delete.setStatusTip('delete selected item')
-        # self.action_delete.triggered.connect(self.delete)
 
         self.labelTranscription = QLabel('')
         self.labelTranscription.setStyleSheet('font: 15pt Georgia; color: DarkGrey')
-        # self.iconAdd = QIcon('Icons/plus-5-64.png')
-        # self.iconTest = QIcon.fromTheme('edit-undo')
         _icon_plus = create_icon('plus')
         _icon_save_db = create_icon('save_db')
         self.buttonAdd = QPushButton(_icon_plus, '')
+        self.buttonAdd.setCheckable(True)
+        self.buttonAdd.setHidden(True)
         self.button_delete = QPushButton(_icon_delete, '')
         self.button_delete.clicked.connect(self.delete)
 
@@ -213,7 +191,6 @@ class DictionaryWindow(QMainWindow):
         self.layoutH.addWidget(self.widgetRight, stretch=2)
 
         self.current_sound = ''
-        # self.setData(1, 'addition')
         widget = QWidget()
         widget.setLayout(self.layoutH)
         self.setCentralWidget(widget)
@@ -228,27 +205,27 @@ class DictionaryWindow(QMainWindow):
         self.hide()
 
     def add_translate(self):
-        if not self.button_save_db.isVisible():
-            self.button_save_db.setVisible(True)
+        # if not self.button_save_db.isVisible():
+        #     self.button_save_db.setVisible(True)
         if self.widget_bottom_right.isHidden():
             self.widget_bottom_right.setHidden(False)
         else:
             self.widget_bottom_right.setHidden(True)
 
-    def save_to_db(self):
-        if self.button_save_db.isVisible():
-            self.button_save_db.setVisible(False)
+    # def save_to_db(self):
+    #     if self.button_save_db.isVisible():
+    #         self.button_save_db.setVisible(False)
 
     def load(self):
-        self.model.words = select_data(self)
+        self.model.words = select_data(self, 0)
 
     def textChanged(self, s):
         self.text_lineEdit = s
         self.model.words = select_data(self, 1, s)
         self.model.layoutChanged.emit()
 
-    def get_data(self):
-        print(self.text_lineEdit)
+    # def get_data(self):
+    #     print(self.text_lineEdit)
 
     def getSelectIndex(self):
         listSelectedIndex = self.listW.selectedIndexes()
@@ -264,9 +241,11 @@ class DictionaryWindow(QMainWindow):
     def setData(self, idWord, word):
         self._current_word_id = idWord
         self._standard_model = QStandardItemModel(self)
+        self._standard_model.itemChanged.connect(self.test)
         root_node = self._standard_model.invisibleRootItem()
 
         word_item = QStandardItem(word)
+        word_item.setEditable(False)
         font_word = word_item.font()
         font_word.setPointSize(16)
         word_item.setFont(font_word)
@@ -315,12 +294,12 @@ class DictionaryWindow(QMainWindow):
             _item = self._standard_model.itemFromIndex(_indexes[0])
             if type(_item) == CustomItem:
                 if _item.name == 'Translate':
-                    change_data(self, 6, _item.key_word['TranslateId'])
+                    delete_data(self, 6, _item.key_word['TranslateId'])
                 else:
                     _translate_id = _item.parent.key_word['TranslateId']
-                    change_data(self, 5, _translate_id)
+                    delete_data(self, 5, _translate_id)
             else:
-                change_data(self, 7, self._current_word_id)
+                delete_data(self, 7, self._current_word_id)
             _index = _indexes[0].parent()
             self._standard_model.removeRow(0, _index)
             self._standard_model.layoutChanged.emit()
@@ -331,19 +310,24 @@ class DictionaryWindow(QMainWindow):
     def save_to_db(self):
         root_node = self._standard_model.invisibleRootItem()
         _word_item = root_node.child(0, 0)
-        text = _word_item.text()
         for i in range(_word_item.rowCount()):
-            _translate_item = _word_item.child(i)
-            if type(_translate_item) == TranslateItem:
-                words = _translate_item.words
-                for k in range(_translate_item.rowCount()):
-                    _example_item = _translate_item.child(k)
-                    item_text = _example_item.text()
+            _custom_item = _word_item.child(i)
+            _translate_id = _custom_item.get_key_word['TranslateId']
+            update_data(index=8, name=_custom_item.name, translate_id=_translate_id, window=self,
+                        translate=_custom_item.get_key_word['Translate'],
+                        part_of_speach=_custom_item.get_key_word['PartOfSpeach'])
+            for k in range(_custom_item.rowCount()):
+                _example_item = _custom_item.child(k)
+                update_data(index=9, name=_example_item.name, translate_id=_translate_id, window=self,
+                            example=_example_item.get_key_word['Example'])
+        if self.button_save_db.isVisible():
+            self.button_save_db.setVisible(False)
 
-    def test(self):
-        _indexes = self.treeview.selectedIndexes()
-        _index = _indexes[0]
-        _data = self._standard_model.data(_index)
-        print(_data)
-        _item = self._standard_model.itemFromIndex(_index)
-        print(_item)
+    @Slot(QStandardItem)
+    def test(item):
+        # _indexes = self.treeview.selectedIndexes()
+        # _index = _indexes[0]
+        # _data = self._standard_model.data(_index)
+        # print(_data)
+        # _item = self._standard_model.itemFromIndex(_index)
+        print(item)
