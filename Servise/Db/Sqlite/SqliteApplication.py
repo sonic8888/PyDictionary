@@ -5,9 +5,9 @@ from Views.MessageBoxess import *
 
 db_path_name = 'mobiles.db'
 words_table_create = '''CREATE TABLE Words (
-    WordId        INTEGER       PRIMARY KEY AUTOINCREMENT
+    id            INTEGER       PRIMARY KEY AUTOINCREMENT
                                 NOT NULL,
-    Word          VARCHAR (50)  NOT NULL,
+    Word          VARCHAR (50)  UNIQUE NOT NULL,
     SoundName     VARCHAR (100),
     Transcription VARCHAR (50),
     State         INTEGER       NOT NULL
@@ -15,36 +15,39 @@ words_table_create = '''CREATE TABLE Words (
                                 DEFAULT (1),
     DataInsert    TEXT (50)     NOT NULL,
     DataLastCall  TEXT (50)     NOT NULL
-);'''
-examples_table_create = '''CREATE TABLE Examples (
-    ExampleId   INTEGER       PRIMARY KEY AUTOINCREMENT
+)'''
+examples_table_create = '''CREATE TABLE Translates (
+    Id           INTEGER      PRIMARY KEY AUTOINCREMENT
                               NOT NULL,
-    TranslateId INTEGER       REFERENCES Translates (TranslateId) ON DELETE CASCADE
-                                                                  ON UPDATE CASCADE,
-    WordId      INTEGER       REFERENCES Words (WordId) ON DELETE CASCADE
-                                                        ON UPDATE CASCADE,
-    Example     VARCHAR (200) 
-);'''
-translates_table_create = '''(
-    TranslateId  INTEGER      PRIMARY KEY AUTOINCREMENT
-                              NOT NULL,
-    WordId       INTEGER      NOT NULL
-                              REFERENCES Words (WordId) ON DELETE CASCADE
-                                                        ON UPDATE CASCADE,
+    WordId       INTEGER      NOT NULL,
     Translate    VARCHAR (50) NOT NULL,
-    PartOfSpeach VARCHAR (50) 
-);'''
+    PartOfSpeach VARCHAR (50),
+    FOREIGN KEY (
+        WordId
+    )
+    REFERENCES Words (id) ON DELETE CASCADE
+)'''
+translates_table_create = '''CREATE TABLE Examples (
+    Id          INTEGER       PRIMARY KEY AUTOINCREMENT
+                              NOT NULL,
+    TranslateId INTEGER       NOT NULL,
+    Example     VARCHAR (200),
+    FOREIGN KEY (
+        TranslateId
+    )
+    REFERENCES Translates (id) ON DELETE CASCADE
+)'''
 con = None
 
-select_words_for_model = 'SELECT  WordId, Word, SoundName FROM Words ORDER BY Word'
-select = "SELECT  WordId, Word, SoundName FROM Words WHERE Word LIKE '{:s}%' ORDER BY Word"
-select_word = "SELECT Word, Transcription, SoundName FROM Words WHERE WordId = {:d}"
-select_translate = "SELECT TranslateId, Translate, PartOfSpeach FROM Translates WHERE WordId = {:d}"
+select_words_for_model = 'SELECT  id, Word, SoundName FROM Words ORDER BY Word'
+select = "SELECT  id, Word, SoundName FROM Words WHERE Word LIKE '{:s}%' ORDER BY Word"
+select_word = "SELECT Word, Transcription, SoundName FROM Words WHERE id = {:d}"
+select_translate = "SELECT id, Translate, PartOfSpeach FROM Translates WHERE WordId = {:d}"
 select_example = "SELECT Example FROM Examples WHERE TranslateId = {:d}"
 delete_example = 'DELETE FROM Examples WHERE TranslateId = {:d}'
-delete_translate = 'DELETE FROM Translates WHERE TranslateId = {:d}'
-delete_word = 'DELETE FROM Words WHERE WordId = {:d}'
-update_translate = "UPDATE Translates SET Translate = '{:s}', PartOfSpeach = '{:s}' WHERE TranslateId = {:d}"
+delete_translate = 'DELETE FROM Translates WHERE id = {:d}'
+delete_word = 'DELETE FROM Words WHERE id = {:d}'
+update_translate = "UPDATE Translates SET Translate = '{:s}', PartOfSpeach = '{:s}' WHERE id = {:d}"
 update_example = "UPDATE Examples SET Example = '{:s}' WHERE TranslateId = {:d}"
 
 list_sql_query = [select_words_for_model, select, select_word, select_translate, select_example, delete_example,
@@ -160,20 +163,19 @@ def create_dictionary(window=None, index=0, value=None):
     print(_list_data)
 
 
-def test(sqlQuery):
+def test(sql, value=None):
     global con
+
+    dic = {'val': value}
     try:
-        con = sqlite3.connect(r'D:\Documents\PythonProjects\PyDictionary\mobiles.db')
+        con = sqlite3.connect(r"D:\Documents\PythonProjects\PyDictionary\mobiles.db")
         cur = con.cursor()
-        cur.execute(sqlQuery)
-        con.commit()
-        # list_data = cur.fetchall()
-        # print(list_data)
-        # return list_data
-    except Exception as er:
-        # message_error = er.__str__()
-        # QMessageBox.critical(window, 'Error', message_error)
+        cur.execute(sql, dic)
+        list_data = cur.fetchall()
+        return list_data
+    except Error as er:
         print(er)
+
     finally:
         con.close()
 
@@ -181,5 +183,8 @@ def test(sqlQuery):
 # create_dictionary(index=3, value=1)
 # test(select_words_for_model)
 sql_query = "DELETE FROM Examples WHERE TranslateId = 4"
-_test_sql = 'SELECT * FROM Examples WHERE TranslateId = 4'
-test(sql_query)
+_test_sql = "SELECT * FROM Examples WHERE TranslateId = :id"
+select = "SELECT  id, Word, SoundName FROM Words WHERE Word LIKE ':val%' ORDER BY Word"
+select_word = "SELECT Word, Transcription, SoundName FROM Words WHERE id = ?"
+_data = [(4,)]
+print(test(select, value='ad'))

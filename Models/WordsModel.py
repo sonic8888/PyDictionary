@@ -8,13 +8,11 @@ class Words(QtCore.QAbstractListModel):
         self.words = words or []
 
     def data(self, index, role):
-        row = index.row()
-        col = index.column()
         if role == Qt.DisplayRole:
             _, text, sound = self.words[index.row()]
             return text
         elif role == Qt.FontRole:
-            if col == 0:  # change font only for cell(0,0)
+            if index.column() == 0:  # change font only for cell(0,0)
                 bold_font = QFont()
                 bold_font.setPointSize(14)
                 return bold_font

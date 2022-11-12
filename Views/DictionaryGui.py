@@ -129,21 +129,38 @@ class DictionaryWindow(QMainWindow):
         self.treeview = QTreeView()
         self.widget_bottom_right = QWidget()
         self.layout_grid_bottom_right = QGridLayout()
-        _label_part_of_speach = QLabel('часть речи:')
-        _label_translate = QLabel('перевод:')
-        _label_example = QLabel('пример:')
+        self._label_word = QLabel('слово:')
+        self._label_transcription = QLabel('транскрипция:')
+        self._label_part_of_speach = QLabel('часть речи:')
+        self._label_translate = QLabel('перевод:')
+        self._label_example = QLabel('пример:')
         self._line_part_of_speach = QLineEdit()
+        self._line_word = QLineEdit()
+        self._line_transcription = QLineEdit()
         self._line_translate = QLineEdit()
         self._line_example = QLineEdit()
-        self.layout_grid_bottom_right.addWidget(_label_part_of_speach, 0, 0)
-        self.layout_grid_bottom_right.addWidget(_label_translate, 1, 0)
-        self.layout_grid_bottom_right.addWidget(_label_example, 2, 0)
-        self.layout_grid_bottom_right.addWidget(self._line_part_of_speach, 0, 1)
-        self.layout_grid_bottom_right.addWidget(self._line_translate, 1, 1)
-        self.layout_grid_bottom_right.addWidget(self._line_example, 2, 1)
+        self.layout_grid_bottom_right.addWidget(self._label_word, 0, 0)
+        self.layout_grid_bottom_right.addWidget(self._label_transcription, 1, 0)
+        self.layout_grid_bottom_right.addWidget(self._label_translate, 2, 0)
+        self.layout_grid_bottom_right.addWidget(self._label_part_of_speach, 3, 0)
+        self.layout_grid_bottom_right.addWidget(self._label_example, 4, 0)
+        self.layout_grid_bottom_right.addWidget(self._line_word, 0, 1)
+        self.layout_grid_bottom_right.addWidget(self._line_transcription, 1, 1)
+        self.layout_grid_bottom_right.addWidget(self._line_translate, 2, 1)
+        self.layout_grid_bottom_right.addWidget(self._line_part_of_speach, 3, 1)
+        self.layout_grid_bottom_right.addWidget(self._line_example, 4, 1)
         self.widget_bottom_right.setLayout(self.layout_grid_bottom_right)
         self.widget_bottom_right.setHidden(True)
-        # self.treeview.setModel(self._standard_model)
+        self._label_word.setHidden(True)
+        self._label_transcription.setHidden(True)
+        self._label_part_of_speach.setHidden(True)
+        self._label_translate.setHidden(True)
+        self._label_example.setHidden(True)
+        self._line_part_of_speach.setHidden(True)
+        self._line_word.setHidden(True)
+        self._line_transcription.setHidden(True)
+        self._line_translate.setHidden(True)
+        self._line_example.setHidden(True)
         self.treeview.setHeaderHidden(True)
 
         self.widgetRight = QWidget()
@@ -158,17 +175,18 @@ class DictionaryWindow(QMainWindow):
         self.labelWord.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.labelWord.setStyleSheet("font: 17pt")
         _icon_delete = create_icon('delete')
-
+        _icon_clear = create_icon('broom')
+        self.button_clear = QPushButton(_icon_clear, '')
         self.labelTranscription = QLabel('')
         self.labelTranscription.setStyleSheet('font: 15pt Georgia; color: DarkGrey')
         _icon_plus = create_icon('plus')
         _icon_save_db = create_icon('save_db')
         self.buttonAdd = QPushButton(_icon_plus, '')
         self.buttonAdd.setCheckable(True)
-        self.buttonAdd.setHidden(True)
+        # self.buttonAdd.setHidden(True)
         self.button_delete = QPushButton(_icon_delete, '')
         self.button_delete.clicked.connect(self.delete)
-
+        self.button_clear.clicked.connect(self.clear_treeview)
         self.buttonAdd.clicked.connect(self.add_translate)
         self.button_save_db = QPushButton(_icon_save_db, '')
         self.button_save_db.clicked.connect(self.save_to_db)
@@ -178,6 +196,7 @@ class DictionaryWindow(QMainWindow):
         self.layoutHWidgetTopRight.addWidget(self.labelWord, stretch=3)
         self.layoutHWidgetTopRight.addWidget(self.labelTranscription, stretch=3)
         self.layoutHWidgetTopRight.addWidget(self.buttonAdd)
+        self.layoutHWidgetTopRight.addWidget(self.button_clear)
         self.layoutHWidgetTopRight.addWidget(self.button_save_db)
         self.layoutHWidgetTopRight.addWidget(self.button_delete)
         self.widgetTopRight.setLayout(self.layoutHWidgetTopRight)
@@ -190,10 +209,37 @@ class DictionaryWindow(QMainWindow):
         self.layoutVWidgetRight.addWidget(self.widget_bottom_right)
         self.layoutH.addWidget(self.widgetRight, stretch=2)
 
-        self.current_sound = ''
         widget = QWidget()
         widget.setLayout(self.layoutH)
         self.setCentralWidget(widget)
+        # self.set_add_visible_all(True)
+
+    def set_add_visible_all(self, is_visible):
+        self.widget_bottom_right.setHidden(is_visible)
+        self._label_word.setHidden(is_visible)
+        self._label_transcription.setHidden(is_visible)
+        self._label_part_of_speach.setHidden(is_visible)
+        self._label_translate.setHidden(is_visible)
+        self._label_example.setHidden(is_visible)
+        self._line_part_of_speach.setHidden(is_visible)
+        self._line_word.setHidden(is_visible)
+        self._line_transcription.setHidden(is_visible)
+        self._line_translate.setHidden(is_visible)
+        self._line_example.setHidden(is_visible)
+
+    def set_add_visible_translate(self, is_visible):
+        self.widget_bottom_right.setHidden(is_visible)
+        self._label_translate.setHidden(is_visible)
+        self._label_part_of_speach.setHidden(is_visible)
+        self._label_example.setHidden(is_visible)
+        self._line_translate.setHidden(is_visible)
+        self._line_part_of_speach.setHidden(is_visible)
+        self._line_example.setHidden(is_visible)
+
+    def set_add_visible_example(self, is_visible):
+        self.widget_bottom_right.setHidden(is_visible)
+        self._label_example.setHidden(is_visible)
+        self._line_example.setHidden(is_visible)
 
     def closeEvent(self, event: PySide6.QtGui.QCloseEvent):
         if not self.windowParent.isVisible():
@@ -205,16 +251,21 @@ class DictionaryWindow(QMainWindow):
         self.hide()
 
     def add_translate(self):
-        # if not self.button_save_db.isVisible():
-        #     self.button_save_db.setVisible(True)
-        if self.widget_bottom_right.isHidden():
-            self.widget_bottom_right.setHidden(False)
+        if self.buttonAdd.isChecked():
+            _indexes = self.treeview.selectedIndexes()
+            if not _indexes:
+                if self._current_word_id:
+                    self.set_add_visible_translate(False)
+                else:
+                    self.set_add_visible_all(False)
+            else:
+                _item = self._standard_model.itemFromIndex(_indexes[0])
+                if type(_item) == QStandardItem:
+                    self.set_add_visible_translate(False)
+                if type(_item) == CustomItem and _item.name == 'Translate':
+                    self.set_add_visible_example(False)
         else:
-            self.widget_bottom_right.setHidden(True)
-
-    # def save_to_db(self):
-    #     if self.button_save_db.isVisible():
-    #         self.button_save_db.setVisible(False)
+            self.set_add_visible_all(True)
 
     def load(self):
         self.model.words = select_data(self, 0)
@@ -252,7 +303,7 @@ class DictionaryWindow(QMainWindow):
 
         list_data = select_data(self, 2, idWord)
         _tuple = list_data[0]
-        self.current_sound = _tuple[2]
+        # self.current_sound = _tuple[2]
         self.labelTranscription.setText(_tuple[1])
         self.labelWord.setText(word)
 
@@ -295,13 +346,15 @@ class DictionaryWindow(QMainWindow):
             if type(_item) == CustomItem:
                 if _item.name == 'Translate':
                     delete_data(self, 6, _item.key_word['TranslateId'])
+                    pass
                 else:
                     _translate_id = _item.parent.key_word['TranslateId']
                     delete_data(self, 5, _translate_id)
             else:
                 delete_data(self, 7, self._current_word_id)
             _index = _indexes[0].parent()
-            self._standard_model.removeRow(0, _index)
+            _row = _indexes[0].row()
+            self._standard_model.removeRow(_row, _index)
             self._standard_model.layoutChanged.emit()
         else:
             messageBox_warning(self, 'ничего не выбрано')
@@ -322,6 +375,16 @@ class DictionaryWindow(QMainWindow):
                             example=_example_item.get_key_word['Example'])
         if self.button_save_db.isVisible():
             self.button_save_db.setVisible(False)
+
+    @Slot()
+    def clear_treeview(self):
+        self.labelWord.setText('')
+        self.labelTranscription.setText('')
+        self._current_word_id = None
+        self._current_sound_file = ''
+        self._standard_model = QStandardItemModel(self)
+        self.treeview.setModel(self._standard_model)
+        # self._standard_model.layoutChanged.emit()
 
     @Slot(QStandardItem)
     def test(item):

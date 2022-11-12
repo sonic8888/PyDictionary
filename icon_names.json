@@ -22,5 +22,9 @@
   "delete": {
     "Themas.LIGHT": "delete_dark.png",
     "Themas.DARK": "delete_white.png"
+  },
+  "broom": {
+    "Themas.LIGHT": "broom_dark.png",
+    "Themas.DARK": "broom_white.png"
   }
 }
