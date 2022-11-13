@@ -10,9 +10,9 @@ from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
 from PySide6.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QHBoxLayout, QToolBar, QListView, \
     QLineEdit, QTreeView, QPushButton, QLabel, QGridLayout, QMessageBox
 
-from DataSettings import create_icon, list_resources, window_title
+from DataSettings import create_icon, list_resources, window_title, SelectData
 from Models.WordsModel import Words
-from Servise.Db.Sqlite.SqliteApplication import select_data, delete_data, update_data
+from Servise.Db.Sqlite.SqliteApplication import select_data, delete_data, update_data, insert_data
 from Servise.Variable import minSizeWindow
 from Views.MessageBoxess import *
 
@@ -58,12 +58,12 @@ class CustomItem(QStandardItem):
                     self.key_word[self.list_key[0]] = _list_val[0]
                     self.key_word[self.list_key[1]] = _list_val[1]
                 else:
-                    print()
                     message_critical_(self.window, 'укажите "перевод слова" и "часть речи" в скобках')
+                    self.window.buttonAdd.setChecked(False)
             else:
                 self.key_word[self.list_key[0]] = value
 
-        if not self.window.button_save_db.isVisible():
+        if not self.window.button_save_db.isVisible() and self.window.buttonAdd.isChecked():
             self.window.button_save_db.setVisible(True)
 
     def type(self) -> int:
@@ -86,6 +86,9 @@ class DictionaryWindow(QMainWindow):
         self._standard_model = None
         self._current_sound_file = ''
         self._current_word_id = 0
+        self._current_translate_id = None
+        self._current_select_data = SelectData.ALL
+        self._current_standard_item = None
         self._player = QMediaPlayer()
         self.audioOutput = QAudioOutput()
         self._player.setAudioOutput(self.audioOutput)
@@ -187,9 +190,9 @@ class DictionaryWindow(QMainWindow):
         self.button_delete = QPushButton(_icon_delete, '')
         self.button_delete.clicked.connect(self.delete)
         self.button_clear.clicked.connect(self.clear_treeview)
-        self.buttonAdd.clicked.connect(self.add_translate)
+        self.buttonAdd.clicked.connect(self.add_data)
         self.button_save_db = QPushButton(_icon_save_db, '')
-        self.button_save_db.clicked.connect(self.save_to_db)
+        self.button_save_db.clicked.connect(self.update_data_db)
         self.button_save_db.setVisible(False)
         self.layoutHWidgetTopRight = QHBoxLayout()
         self.layoutHWidgetTopRight.addWidget(self.buttonSound)
@@ -235,11 +238,13 @@ class DictionaryWindow(QMainWindow):
         self._line_translate.setHidden(is_visible)
         self._line_part_of_speach.setHidden(is_visible)
         self._line_example.setHidden(is_visible)
+        self._current_select_data = SelectData.TRANSLATE
 
     def set_add_visible_example(self, is_visible):
         self.widget_bottom_right.setHidden(is_visible)
         self._label_example.setHidden(is_visible)
         self._line_example.setHidden(is_visible)
+        self._current_select_data = SelectData.EXAMPLE
 
     def closeEvent(self, event: PySide6.QtGui.QCloseEvent):
         if not self.windowParent.isVisible():
@@ -250,7 +255,8 @@ class DictionaryWindow(QMainWindow):
         self.windowParent.show()
         self.hide()
 
-    def add_translate(self):
+    def add_data(self):
+        # self.buttonAdd.setChecked(False)
         if self.buttonAdd.isChecked():
             _indexes = self.treeview.selectedIndexes()
             if not _indexes:
@@ -260,12 +266,33 @@ class DictionaryWindow(QMainWindow):
                     self.set_add_visible_all(False)
             else:
                 _item = self._standard_model.itemFromIndex(_indexes[0])
+                self._current_standard_item = _item
                 if type(_item) == QStandardItem:
                     self.set_add_visible_translate(False)
                 if type(_item) == CustomItem and _item.name == 'Translate':
+                    self._current_translate_id = _item.key_word['TranslateId']
                     self.set_add_visible_example(False)
         else:
             self.set_add_visible_all(True)
+            if self._current_select_data == SelectData.EXAMPLE:  # add example in model and db
+                _text_example = self._line_example.text()
+                insert_data(self._current_translate_id, _text_example, index=10, window=self)
+                _list_key_example = ['Example']
+                _key_word_example = {'TranslateId': self._current_translate_id, 'Example': _text_example,
+                                     'TableName': 'Examples'}
+                example_item = CustomItem(self, 'Example', _list_key_example, _key_word_example,
+                                          self._current_standard_item)
+                count_row = self._current_standard_item.row()
+                self._current_standard_item.setChild(count_row + 1, 0, example_item)
+                self._standard_model.layoutChanged.emit()
+            if self._current_select_data == SelectData.TRANSLATE:  # add translate, example, in model and db
+                _text_translate = self._line_translate.text()
+                _text_part_of_speach = self._line_part_of_speach.text()
+                _text_example = self._line_example.text()
+                _translate_id = insert_data(self._current_word_id, _text_translate, _text_part_of_speach, index=11,
+                                            window=self)
+                if _text_example:
+                    insert_data(_translate_id, _text_example, index=10, window=self)
 
     def load(self):
         self.model.words = select_data(self, 0)
@@ -360,7 +387,7 @@ class DictionaryWindow(QMainWindow):
             messageBox_warning(self, 'ничего не выбрано')
 
     @Slot()
-    def save_to_db(self):
+    def update_data_db(self):
         root_node = self._standard_model.invisibleRootItem()
         _word_item = root_node.child(0, 0)
         for i in range(_word_item.rowCount()):
@@ -384,7 +411,10 @@ class DictionaryWindow(QMainWindow):
         self._current_sound_file = ''
         self._standard_model = QStandardItemModel(self)
         self.treeview.setModel(self._standard_model)
-        # self._standard_model.layoutChanged.emit()
+        self._current_select_data = SelectData.ALL
+
+    def add_new_example(self, translate_id):
+        text = self._line_example.text()
 
     @Slot(QStandardItem)
     def test(item):

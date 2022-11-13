@@ -49,9 +49,11 @@ delete_translate = 'DELETE FROM Translates WHERE id = {:d}'
 delete_word = 'DELETE FROM Words WHERE id = {:d}'
 update_translate = "UPDATE Translates SET Translate = '{:s}', PartOfSpeach = '{:s}' WHERE id = {:d}"
 update_example = "UPDATE Examples SET Example = '{:s}' WHERE TranslateId = {:d}"
+insert_example = "INSERT INTO Examples(TranslateId, Example) VALUES(?, ?)"
+insert_translate = "INSERT INTO Translates(WordId, Translate, PartOfSpeach) VALUES(?, ?, ?)"
 
 list_sql_query = [select_words_for_model, select, select_word, select_translate, select_example, delete_example,
-                  delete_translate, delete_word, update_translate, update_example]
+                  delete_translate, delete_word, update_translate, update_example, insert_example, insert_translate]
 
 _list_words_for_model = ['WordId', 'Word', 'SoundName', 'Words']
 _list_select = ['SoundName', 'Word', 'Words']
@@ -163,16 +165,47 @@ def create_dictionary(window=None, index=0, value=None):
     print(_list_data)
 
 
-def test(sql, value=None):
+def insert_data(*values, window=None, index=0):
     global con
+    query = ''
+    if index < len(list_sql_query):
+        query = list_sql_query[index]
+        try:
+            con = sqlite3.connect(db_path_name)
+            cur = con.cursor()
+            cur.execute(query, values)
+            con.commit()
+            return cur.lastrowid
+        except Error as er:
+            if window:
+                message_error = er.__str__()
+                QMessageBox.critical(window, 'Error', message_error)
+            else:
+                print(er)
+        finally:
+            con.close()
 
-    dic = {'val': value}
+    else:
+        print('index out of range')
+
+
+def test(*values, index=0):
+    global con
+    query = ''
+    list_values = [1, 'test example']
+    # for val in values:
+    #     list_values.append(val)
+    query = list_sql_query[index]
     try:
         con = sqlite3.connect(r"D:\Documents\PythonProjects\PyDictionary\mobiles.db")
         cur = con.cursor()
-        cur.execute(sql, dic)
-        list_data = cur.fetchall()
-        return list_data
+        # _vals = tuple(values)
+        cur.execute(query, values)
+        con.commit()
+        _id = cur.lastrowid
+        print(_id)
+        # list_data = cur.fetchall()
+        # return list_data
     except Error as er:
         print(er)
 
@@ -186,5 +219,4 @@ sql_query = "DELETE FROM Examples WHERE TranslateId = 4"
 _test_sql = "SELECT * FROM Examples WHERE TranslateId = :id"
 select = "SELECT  id, Word, SoundName FROM Words WHERE Word LIKE ':val%' ORDER BY Word"
 select_word = "SELECT Word, Transcription, SoundName FROM Words WHERE id = ?"
-_data = [(4,)]
-print(test(select, value='ad'))
+# test(3, 'движение', 'сущ', index=11)

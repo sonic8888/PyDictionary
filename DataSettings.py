@@ -14,6 +14,12 @@ class Themas(Enum):
     DARK = 2
 
 
+class SelectData(Enum):
+    ALL = 1
+    TRANSLATE = 2
+    EXAMPLE = 3
+
+
 current_themas = Themas.LIGHT
 
 
