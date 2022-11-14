@@ -62,7 +62,7 @@ class MainWindow(QMainWindow):
         self.label.setWindowIcon(icon)
         self.listView = QListView()
         self.listView.setModel(self._standard_model)
-        self.button = QPushButton(icon,"Press ME")
+        self.button = QPushButton(icon, "Press ME")
         # self.button.setWindowIcon(icon)
         self.button.clicked.connect(self.clicked)
         self.layout.addWidget(self.label)
@@ -97,9 +97,14 @@ class MainWindow(QMainWindow):
         child = self.root_node.child(self.index.row(), 0)
 
 
-app = QApplication(sys.argv)
+def main():
+    app = QApplication(sys.argv)
 
-window = MainWindow()
-window.show()
+    window = MainWindow()
+    window.show()
 
-app.exec()
+    app.exec()
+
+
+if __name__ == '__main__':
+    main()

@@ -213,10 +213,9 @@ def test(*values, index=0):
         con.close()
 
 
-# create_dictionary(index=3, value=1)
-# test(select_words_for_model)
-sql_query = "DELETE FROM Examples WHERE TranslateId = 4"
-_test_sql = "SELECT * FROM Examples WHERE TranslateId = :id"
-select = "SELECT  id, Word, SoundName FROM Words WHERE Word LIKE ':val%' ORDER BY Word"
-select_word = "SELECT Word, Transcription, SoundName FROM Words WHERE id = ?"
-# test(3, 'движение', 'сущ', index=11)
+def main():
+    pass
+
+
+if __name__ == '__main__':
+    pass
