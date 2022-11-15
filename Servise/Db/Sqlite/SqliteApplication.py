@@ -13,8 +13,8 @@ words_table_create = '''CREATE TABLE Words (
     State         INTEGER       NOT NULL
                                 CHECK (State >= 1 || State <= 3) 
                                 DEFAULT (1),
-    DataInsert    TEXT (50)     NOT NULL,
-    DataLastCall  TEXT (50)     NOT NULL
+    DataInsert    DATE     NOT NULL,
+    DataLastCall  DATE     NOT NULL
 )'''
 examples_table_create = '''CREATE TABLE Translates (
     Id           INTEGER      PRIMARY KEY AUTOINCREMENT
@@ -42,35 +42,39 @@ con = None
 select_words_for_model = 'SELECT  id, Word, SoundName FROM Words ORDER BY Word'
 select = "SELECT  id, Word, SoundName FROM Words WHERE Word LIKE '{:s}%' ORDER BY Word"
 select_word = "SELECT Word, Transcription, SoundName FROM Words WHERE id = {:d}"
-select_translate = "SELECT id, Translate, PartOfSpeach FROM Translates WHERE WordId = {:d}"
-select_example = "SELECT Example FROM Examples WHERE TranslateId = {:d}"
-delete_example = 'DELETE FROM Examples WHERE TranslateId = {:d}'
+select_translate = "SELECT * FROM Translates WHERE WordId = {:d}"
+select_example = "SELECT * FROM Examples WHERE TranslateId = {:d}"
+delete_example = 'DELETE FROM Examples WHERE id = {:d}'
 delete_translate = 'DELETE FROM Translates WHERE id = {:d}'
-delete_word = 'DELETE FROM Words WHERE id = {:d}'
+delete_word = 'DELETE  FROM Words WHERE id = {:d}'
 update_translate = "UPDATE Translates SET Translate = '{:s}', PartOfSpeach = '{:s}' WHERE id = {:d}"
 update_example = "UPDATE Examples SET Example = '{:s}' WHERE TranslateId = {:d}"
 insert_example = "INSERT INTO Examples(TranslateId, Example) VALUES(?, ?)"
 insert_translate = "INSERT INTO Translates(WordId, Translate, PartOfSpeach) VALUES(?, ?, ?)"
+insert_word = "INSERT INTO Words('Word', 'SoundName', 'Transcription', State, 'DataInsert', 'DataLastCall')" \
+              " VALUES(?, ?, ?, ?, ?, ?)"
 
 list_sql_query = [select_words_for_model, select, select_word, select_translate, select_example, delete_example,
-                  delete_translate, delete_word, update_translate, update_example, insert_example, insert_translate]
-
-_list_words_for_model = ['WordId', 'Word', 'SoundName', 'Words']
-_list_select = ['SoundName', 'Word', 'Words']
-_list_select_word = ['Word', 'Transcription', 'SoundName', 'Words']
-_list_select_translates = ['TranslateId', 'Translate', 'PartOfSpeach', 'Translates']
-_list_select_examples = ['Example', 'Examples']
-_list_keys = [_list_words_for_model, _list_select, _list_select_word, _list_select_translates, _list_select_examples]
+                  delete_translate, delete_word, update_translate, update_example, insert_example, insert_translate,
+                  insert_word]
+list_table_name = ['Words', 'Translates', 'Examples']
+list_create_tables = [words_table_create, examples_table_create, translates_table_create]
 
 
-def create_empty_tables(window):
+# _list_words_for_model = ['WordId', 'Word', 'SoundName', 'Words']
+# _list_select = ['SoundName', 'Word', 'Words']
+# _list_select_word = ['Word', 'Transcription', 'SoundName', 'Words']
+# _list_select_translates = ['TranslateId', 'Translate', 'PartOfSpeach', 'Translates']
+# _list_select_examples = ['Example', 'Examples']
+# _list_keys = [_list_words_for_model, _list_select, _list_select_word, _list_select_translates, _list_select_examples]
+
+
+def create_empty_tables(window=None, sql_create_table=None):
     global con
     try:
         con = sqlite3.connect(db_path_name)
         cur = con.cursor()
-        cur.execute(words_table_create)
-        cur.execute(examples_table_create)
-        cur.execute(translates_table_create)
+        cur.execute(sql_create_table)
     except Error as er:
         message_error = er.__str__()
         QMessageBox.critical(window, 'Error', message_error)
@@ -118,8 +122,9 @@ def delete_data(window=None, index=0, value=None):
         else:
             query = list_sql_query[index]
         try:
-            con = sqlite3.connect(db_path_name)
+            con = sqlite3.connect(r'D:\Documents\PythonProjects\PyDictionary\mobiles.db')
             cur = con.cursor()
+            con.execute("PRAGMA foreign_keys = ON")
             cur.execute(query)
             con.commit()
         except Error as er:
@@ -145,6 +150,7 @@ def update_data(index, name, translate_id, window=None, translate=None, part_of_
         try:
             con = sqlite3.connect(db_path_name)
             cur = con.cursor()
+            con.execute("PRAGMA foreign_keys = ON")
             cur.execute(query)
             con.commit()
         except Error as er:
@@ -201,11 +207,8 @@ def test(*values, index=0):
         cur = con.cursor()
         # _vals = tuple(values)
         cur.execute(query, values)
-        con.commit()
-        _id = cur.lastrowid
-        print(_id)
-        # list_data = cur.fetchall()
-        # return list_data
+        list_data = cur.fetchall()
+        return list_data
     except Error as er:
         print(er)
 
@@ -213,9 +216,38 @@ def test(*values, index=0):
         con.close()
 
 
-def main():
-    pass
+def is_exist_table(window=None, table_name=None):
+    global con
+    sql = "SELECT name FROM sqlite_master WHERE type='table' AND name='{:s}'".format(table_name)
+    try:
+        con = sqlite3.connect(r"D:\Documents\PythonProjects\PyDictionary\mobiles.db")
+        cur = con.cursor()
+        cur.execute(sql)
+        list_data = cur.fetchall()
+        return bool(list_data)
+    except Error as er:
+        if window:
+            message_error = er.__str__()
+            QMessageBox.critical(window, 'Error', message_error)
+        else:
+            print(er)
+    finally:
+        con.close()
+    return True
 
+
+def load(window=None):
+    is_exist = True
+    for index, name in enumerate(list_table_name):
+        if not is_exist_table(window, name):
+            is_exist = False
+            create_empty_tables(window, list_create_tables[index])
+    return is_exist
+
+
+def main():
+    # delete_data(index=7, value=10 )
+    pass
 
 if __name__ == '__main__':
-    pass
+    main()

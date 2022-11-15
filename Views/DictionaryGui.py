@@ -1,5 +1,6 @@
 import re
 import os
+from datetime import date
 from typing import Any
 import PySide6
 from PySide6 import QtGui
@@ -12,7 +13,7 @@ from PySide6.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QHBoxLayout, QT
 
 from DataSettings import create_icon, list_resources, window_title, SelectData
 from Models.WordsModel import Words
-from Servise.Db.Sqlite.SqliteApplication import select_data, delete_data, update_data, insert_data
+from Servise.Db.Sqlite.SqliteApplication import select_data, delete_data, update_data, insert_data, load
 from Servise.Variable import minSizeWindow
 from Views.MessageBoxess import *
 
@@ -22,9 +23,8 @@ regx_split_pattern = r'\s?\('
 
 class CustomItem(QStandardItem):
 
-    def __init__(self, window, name, list_key, key_word, parent=None, *args, **kwargs):
+    def __init__(self, window, name, key_word, parent=None, *args, **kwargs):
         super(CustomItem, self).__init__(*args, **kwargs)
-        self.list_key = list_key
         self.key_word = key_word
         self.window = window
         self.name = name
@@ -32,11 +32,11 @@ class CustomItem(QStandardItem):
 
     def data(self, role: int = ...) -> Any:
         if role == Qt.DisplayRole:
-            if len(self.list_key) == 2:
-                text = '{} ({})'.format(self.key_word[self.list_key[0]], self.key_word[self.list_key[1]])
+            if self.name == 'Translate':
+                text = '{} ({})'.format(self.key_word['Translate'], self.key_word['PartOfSpeach'])
                 return text
             else:
-                text = self.key_word[self.list_key[0]]
+                text = self.key_word['Example']
                 return text
         if role == Qt.FontRole:
             if self.name == 'Translate':
@@ -51,27 +51,22 @@ class CustomItem(QStandardItem):
 
     def setData(self, value: Any, role: int = ...) -> None:
         if role == Qt.EditRole:
-            if len(self.list_key) == 2:
+            if self.name == 'Translate':
                 if re.fullmatch(regx_pattern, value):
                     _list_val = re.split(regx_split_pattern, value)
                     _list_val[1] = _list_val[1][:-1]
-                    self.key_word[self.list_key[0]] = _list_val[0]
-                    self.key_word[self.list_key[1]] = _list_val[1]
+                    self.key_word['Translate'] = _list_val[0]
+                    self.key_word['PartOfSpeach'] = _list_val[1]
                 else:
                     message_critical_(self.window, 'укажите "перевод слова" и "часть речи" в скобках')
                     self.window.buttonAdd.setChecked(False)
             else:
-                self.key_word[self.list_key[0]] = value
-
-        if not self.window.button_save_db.isVisible() and self.window.buttonAdd.isChecked():
+                self.key_word['Example'] = value
+        if not self.window.button_save_db.isVisible():
             self.window.button_save_db.setVisible(True)
 
     def type(self) -> int:
         return 134567
-
-    @property
-    def get_list_key(self):
-        return self.list_key
 
     @property
     def get_key_word(self):
@@ -270,32 +265,111 @@ class DictionaryWindow(QMainWindow):
                 if type(_item) == QStandardItem:
                     self.set_add_visible_translate(False)
                 if type(_item) == CustomItem and _item.name == 'Translate':
-                    self._current_translate_id = _item.key_word['TranslateId']
+                    self._current_translate_id = _item.key_word['id']
                     self.set_add_visible_example(False)
+                if type(_item) == CustomItem and _item.name == 'Example':
+                    return
+
         else:
             self.set_add_visible_all(True)
             if self._current_select_data == SelectData.EXAMPLE:  # add example in model and db
-                _text_example = self._line_example.text()
-                insert_data(self._current_translate_id, _text_example, index=10, window=self)
-                _list_key_example = ['Example']
-                _key_word_example = {'TranslateId': self._current_translate_id, 'Example': _text_example,
-                                     'TableName': 'Examples'}
-                example_item = CustomItem(self, 'Example', _list_key_example, _key_word_example,
-                                          self._current_standard_item)
-                count_row = self._current_standard_item.row()
-                self._current_standard_item.setChild(count_row + 1, 0, example_item)
-                self._standard_model.layoutChanged.emit()
+                self.add_example()
             if self._current_select_data == SelectData.TRANSLATE:  # add translate, example, in model and db
-                _text_translate = self._line_translate.text()
-                _text_part_of_speach = self._line_part_of_speach.text()
-                _text_example = self._line_example.text()
-                _translate_id = insert_data(self._current_word_id, _text_translate, _text_part_of_speach, index=11,
-                                            window=self)
-                if _text_example:
-                    insert_data(_translate_id, _text_example, index=10, window=self)
+                self.add_translate_example()
+
+            if self._current_select_data == SelectData.ALL:  # add word, translate, example, in model and db
+                self.add_word_translate_example()
+
+    def add_example(self):
+        self.set_add_visible_all(True)
+        if self._current_select_data == SelectData.EXAMPLE:  # add example in model and db
+            _text_example = self._line_example.text().strip()
+            if _text_example:
+                _id = insert_data(self._current_translate_id, _text_example, index=10, window=self)
+
+                _key_word_example = {'id': _id, 'TranslateId': self._current_translate_id, 'Example': _text_example}
+
+                example_item = self.create_customItem(name='Example', key_word=_key_word_example,
+                                                      parent=self._current_standard_item)
+                count_row = self._current_standard_item.rowCount()
+                self._current_standard_item.setChild(count_row, 0, example_item)
+                self._standard_model.layoutChanged.emit()
+
+    def add_translate_example(self):
+        _text_translate = self._line_translate.text().strip()
+        if not _text_translate:
+            return
+        _text_part_of_speach = self._line_part_of_speach.text().strip()
+        _text_example = self._line_example.text().strip()
+        _id = insert_data(self._current_word_id, _text_translate, _text_part_of_speach, index=11,
+                          window=self)
+        # _list_key_translate = ['Translate', 'PartOfSpeach']
+        _key_word_translate = {'id': _id, 'WordId': self._current_word_id,
+                               'Translate': _text_translate,
+                               'PartOfSpeach': _text_part_of_speach}
+
+        translate_item = self.create_customItem(name='Translate', key_word=_key_word_translate,
+                                                parent=self._current_standard_item)
+
+        if _text_example:
+            id_ex = insert_data(_id, _text_example, index=10, window=self)
+            _key_word_example = {'id': id_ex, 'TranslateId': _id,
+                                 'Example': _text_example}
+            example_item = self.create_customItem(name='Example', key_word=_key_word_example, parent=translate_item)
+            count_row = translate_item.rowCount()
+            translate_item.setChild(count_row, 0, example_item)
+        count_row = self._current_standard_item.rowCount()
+        self._current_standard_item.setChild(count_row, 0, translate_item)
+        self._standard_model.layoutChanged.emit()
+
+    def add_word_translate_example(self):
+        _text_word = self._line_word.text().strip()
+        if not _text_word:
+            return
+        _sound_name = _text_word + '.wav'
+        _text_transcription = self._line_transcription.text().strip()
+        _text_translate = self._line_translate.text().strip()
+        if not _text_translate:
+            return
+        _text_part_of_speach = self._line_part_of_speach.text().strip()
+        _text_example = self._line_example.text().strip()
+        _current_data = date.today()
+        _word_id = insert_data(_text_word, _sound_name, _text_transcription, 1, _current_data, _current_data,
+                               index=12,
+                               window=self)
+        _word_item = QStandardItem(_text_word)
+        _word_item.setEditable(False)
+        font_word = _word_item.font()
+        font_word.setPointSize(16)
+        _word_item.setFont(font_word)
+
+        if _text_translate:
+            _translate_id = insert_data(_word_id, _text_translate, _text_part_of_speach, index=11,
+                                        window=self)
+            _key_word_translate = {'id': _translate_id, 'WordId': _word_id,
+                                   'Translate': _text_translate,
+                                   'PartOfSpeach': _text_part_of_speach}
+            translate_item = self.create_customItem(name='Translate', key_word=_key_word_translate, parent=_word_item)
+
+            if _text_example:
+                id_ex = insert_data(_translate_id, _text_example, index=10, window=self)
+                _key_word_example = {'id': id_ex, 'TranslateId': _translate_id,
+                                     'Example': _text_example}
+                _example_item = self.create_customItem(name='Example', key_word=_key_word_example,
+                                                       parent=translate_item),
+                count_row = translate_item.rowCount()
+                translate_item.setChild(count_row, 0, _example_item)
+            count_row = _word_item.rowCount()
+            _word_item.setChild(count_row, 0, translate_item)
+            self._standard_model = QStandardItemModel(self)
+            root_node = self._standard_model.invisibleRootItem()
+            root_node.appendRow(_word_item)
+            self.treeview.setModel(self._standard_model)
+            self._standard_model.layoutChanged.emit()
 
     def load(self):
-        self.model.words = select_data(self, 0)
+        if load(self):
+            self.model.words = select_data(self, 0)
 
     def textChanged(self, s):
         self.text_lineEdit = s
@@ -319,7 +393,7 @@ class DictionaryWindow(QMainWindow):
     def setData(self, idWord, word):
         self._current_word_id = idWord
         self._standard_model = QStandardItemModel(self)
-        self._standard_model.itemChanged.connect(self.test)
+        # self._standard_model.itemChanged.connect(self.test)
         root_node = self._standard_model.invisibleRootItem()
 
         word_item = QStandardItem(word)
@@ -337,16 +411,14 @@ class DictionaryWindow(QMainWindow):
         list_data = select_data(self, 3, idWord)
         for i in range(len(list_data)):
             m_tuple = list_data[i]
-            _list_key_translate = ['Translate', 'PartOfSpeach']
-            _key_word_translate = {'TranslateId': m_tuple[0], 'Translate': m_tuple[1], 'PartOfSpeach': m_tuple[2],
-                                   'TableName': 'Translates'}
-            translate_item = CustomItem(self, 'Translate', _list_key_translate, _key_word_translate, word_item)
+            _key_word_translate = {'id': m_tuple[0], 'WordId': m_tuple[1], 'Translate': m_tuple[2],
+                                   'PartOfSpeach': m_tuple[3]}
+            translate_item = self.create_customItem(name='Translate', key_word=_key_word_translate, parent=word_item)
             list_ex = select_data(self, 4, m_tuple[0])
             for k in range(len(list_ex)):
                 tuple_ex = list_ex[k]
-                _list_key_example = ['Example']
-                _key_word_example = {'TranslateId': m_tuple[0], 'Example': tuple_ex[0], 'TableName': 'Examples'}
-                example_item = CustomItem(self, 'Example', _list_key_example, _key_word_example, translate_item)
+                _key_word_example = {'id': tuple_ex[0], 'TranslateId': tuple_ex[1], 'Example': tuple_ex[2]}
+                example_item = self.create_customItem(name='Example', key_word=_key_word_example, parent=translate_item)
                 translate_item.setChild(k, 0, example_item)
             word_item.setChild(i, 0, translate_item)
         root_node.appendRow(word_item)
@@ -365,6 +437,8 @@ class DictionaryWindow(QMainWindow):
     @Slot()
     def delete(self):
         _indexes = self.treeview.selectedIndexes()
+        _index = None
+        _row = None
         if _indexes:
             button = messageBox_question(self, 'Вы точно хотите удалить выбранное?')
             if button == QMessageBox.No:
@@ -372,16 +446,20 @@ class DictionaryWindow(QMainWindow):
             _item = self._standard_model.itemFromIndex(_indexes[0])
             if type(_item) == CustomItem:
                 if _item.name == 'Translate':
-                    delete_data(self, 6, _item.key_word['TranslateId'])
-                    pass
+                    delete_data(self, 6, _item.key_word['id'])
+
                 else:
-                    _translate_id = _item.parent.key_word['TranslateId']
+                    _translate_id = _item.get_key_word['id']
                     delete_data(self, 5, _translate_id)
             else:
-                delete_data(self, 7, self._current_word_id)
-            _index = _indexes[0].parent()
-            _row = _indexes[0].row()
-            self._standard_model.removeRow(_row, _index)
+                _id = _item.get_key_word['id']
+                delete_data(self, 7, _id)
+            _index = _indexes[0]
+            item_parent = _item.parent
+            parent_row = item_parent.row()
+            index_row = _index.row()
+            item_parent.removeRow(index_row)
+            # self._standard_model.removeRow(_row, _index)
             self._standard_model.layoutChanged.emit()
         else:
             messageBox_warning(self, 'ничего не выбрано')
@@ -392,13 +470,14 @@ class DictionaryWindow(QMainWindow):
         _word_item = root_node.child(0, 0)
         for i in range(_word_item.rowCount()):
             _custom_item = _word_item.child(i)
-            _translate_id = _custom_item.get_key_word['TranslateId']
+            _translate_id = _custom_item.get_key_word['id']
             update_data(index=8, name=_custom_item.name, translate_id=_translate_id, window=self,
                         translate=_custom_item.get_key_word['Translate'],
                         part_of_speach=_custom_item.get_key_word['PartOfSpeach'])
             for k in range(_custom_item.rowCount()):
                 _example_item = _custom_item.child(k)
-                update_data(index=9, name=_example_item.name, translate_id=_translate_id, window=self,
+                _id = _example_item.get_key_word['id']
+                update_data(index=9, name=_example_item.name, translate_id=_id, window=self,
                             example=_example_item.get_key_word['Example'])
         if self.button_save_db.isVisible():
             self.button_save_db.setVisible(False)
@@ -415,6 +494,9 @@ class DictionaryWindow(QMainWindow):
 
     def add_new_example(self, translate_id):
         text = self._line_example.text()
+
+    def create_customItem(self, name, key_word, parent):
+        return CustomItem(window=self, name=name, key_word=key_word, parent=parent)
 
     @Slot(QStandardItem)
     def test(item):
