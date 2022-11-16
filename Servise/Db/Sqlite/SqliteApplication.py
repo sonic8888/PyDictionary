@@ -40,15 +40,15 @@ translates_table_create = '''CREATE TABLE Examples (
 con = None
 
 select_words_for_model = 'SELECT  id, Word, SoundName FROM Words ORDER BY Word'
-select = "SELECT  id, Word, SoundName FROM Words WHERE Word LIKE '{:s}%' ORDER BY Word"
-select_word = "SELECT Word, Transcription, SoundName FROM Words WHERE id = {:d}"
-select_translate = "SELECT * FROM Translates WHERE WordId = {:d}"
-select_example = "SELECT * FROM Examples WHERE TranslateId = {:d}"
-delete_example = 'DELETE FROM Examples WHERE id = {:d}'
-delete_translate = 'DELETE FROM Translates WHERE id = {:d}'
-delete_word = 'DELETE  FROM Words WHERE id = {:d}'
-update_translate = "UPDATE Translates SET Translate = '{:s}', PartOfSpeach = '{:s}' WHERE id = {:d}"
-update_example = "UPDATE Examples SET Example = '{:s}' WHERE TranslateId = {:d}"
+select = "SELECT  id, Word, SoundName FROM Words WHERE Word LIKE ? ORDER BY Word"
+select_word = "SELECT Word, Transcription, SoundName FROM Words WHERE id = ?"
+select_translate = "SELECT * FROM Translates WHERE WordId = ?"
+select_example = "SELECT * FROM Examples WHERE TranslateId = ?"
+delete_example = 'DELETE FROM Examples WHERE id = ?'
+delete_translate = 'DELETE FROM Translates WHERE id = ?'
+delete_word = 'DELETE  FROM Words WHERE id = ?'
+update_translate = '''UPDATE Translates SET Translate = ?, PartOfSpeach = ? WHERE id = ?'''
+update_example = '''UPDATE Examples SET Example = ? WHERE TranslateId = ?'''
 insert_example = "INSERT INTO Examples(TranslateId, Example) VALUES(?, ?)"
 insert_translate = "INSERT INTO Translates(WordId, Translate, PartOfSpeach) VALUES(?, ?, ?)"
 insert_word = "INSERT INTO Words('Word', 'SoundName', 'Transcription', State, 'DataInsert', 'DataLastCall')" \
@@ -86,18 +86,42 @@ def is_db_exist():
     return os.path.exists(db_path_name)
 
 
+def select_data_like(window=None, index=0, value=None):
+    global con
+    data = None
+    query = None
+    if index < len(list_sql_query):
+        query = list_sql_query[index]
+        data = (value + '%',)
+    try:
+        con = sqlite3.connect(db_path_name)
+        cur = con.cursor()
+        cur.execute(query, data)
+        list_data = cur.fetchall()
+        return list_data
+    except Error as er:
+        if window:
+            message_error = er.__str__()
+            QMessageBox.critical(window, 'Error', message_error)
+        else:
+            print(er)
+    finally:
+        con.close()
+
+
 def select_data(window=None, index=0, value=None):
     global con
+    data = ()
     if index < len(list_sql_query):
         if value:
             query = list_sql_query[index]
-            query = query.format(value)
+            data = (value,)
         else:
             query = list_sql_query[index]
         try:
             con = sqlite3.connect(db_path_name)
             cur = con.cursor()
-            cur.execute(query)
+            cur.execute(query, data)
             list_data = cur.fetchall()
             return list_data
         except Error as er:
@@ -115,17 +139,16 @@ def select_data(window=None, index=0, value=None):
 
 def delete_data(window=None, index=0, value=None):
     global con
+    data = ()
     if index < len(list_sql_query):
-        if value:
-            query = list_sql_query[index]
-            query = query.format(value)
-        else:
-            query = list_sql_query[index]
+
+        query = list_sql_query[index]
+        data = (value,)
         try:
             con = sqlite3.connect(r'D:\Documents\PythonProjects\PyDictionary\mobiles.db')
             cur = con.cursor()
             con.execute("PRAGMA foreign_keys = ON")
-            cur.execute(query)
+            cur.execute(query, data)
             con.commit()
         except Error as er:
             if window:
@@ -142,16 +165,21 @@ def delete_data(window=None, index=0, value=None):
 def update_data(index, name, translate_id, window=None, translate=None, part_of_speach=None, example=None):
     global con
     query = ''
+    data = None
     if index < len(list_sql_query):
         if name == 'Translate':
-            query = list_sql_query[index].format(translate, part_of_speach, translate_id)
+            # query = list_sql_query[index].format(translate, part_of_speach, translate_id)
+            query = list_sql_query[index]
+            data = (translate, part_of_speach, translate_id)
         else:
-            query = list_sql_query[index].format(example, translate_id)
+            # query = list_sql_query[index].format(example, translate_id)
+            query = list_sql_query[index]
+            data = (example, translate_id)
         try:
             con = sqlite3.connect(db_path_name)
             cur = con.cursor()
             con.execute("PRAGMA foreign_keys = ON")
-            cur.execute(query)
+            cur.execute(query, data)
             con.commit()
         except Error as er:
             if window:
@@ -195,9 +223,11 @@ def insert_data(*values, window=None, index=0):
         print('index out of range')
 
 
-def test(*values, index=0):
+def test(index=0):
     global con
+    select = '''SELECT  id, Word, SoundName FROM Words WHERE Word LIKE ?  ORDER BY Word'''
     query = ''
+    data = ('a' + '%',)
     list_values = [1, 'test example']
     # for val in values:
     #     list_values.append(val)
@@ -206,7 +236,7 @@ def test(*values, index=0):
         con = sqlite3.connect(r"D:\Documents\PythonProjects\PyDictionary\mobiles.db")
         cur = con.cursor()
         # _vals = tuple(values)
-        cur.execute(query, values)
+        cur.execute(select, data)
         list_data = cur.fetchall()
         return list_data
     except Error as er:
@@ -247,7 +277,8 @@ def load(window=None):
 
 def main():
     # delete_data(index=7, value=10 )
-    pass
+    print(test())
+
 
 if __name__ == '__main__':
     main()

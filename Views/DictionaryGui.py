@@ -1,19 +1,18 @@
-import re
 import os
+import re
 from datetime import date
 from typing import Any
 import PySide6
 from PySide6 import QtGui
-from PySide6.QtCore import QObject, Signal, Slot
 from PySide6.QtCore import QSize, Qt, Slot, QItemSelection, QUrl
-from PySide6.QtGui import QPalette, QAction, QStandardItemModel, QStandardItem, QFont
+from PySide6.QtGui import QAction, QStandardItemModel, QStandardItem, QFont
 from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
 from PySide6.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QHBoxLayout, QToolBar, QListView, \
-    QLineEdit, QTreeView, QPushButton, QLabel, QGridLayout, QMessageBox
-
+    QLineEdit, QTreeView, QPushButton, QLabel, QGridLayout
 from DataSettings import create_icon, list_resources, window_title, SelectData
 from Models.WordsModel import Words
-from Servise.Db.Sqlite.SqliteApplication import select_data, delete_data, update_data, insert_data, load
+from Servise.Db.Sqlite.SqliteApplication import select_data, delete_data, update_data, insert_data, load, \
+    select_data_like
 from Servise.Variable import minSizeWindow
 from Views.MessageBoxess import *
 
@@ -52,14 +51,20 @@ class CustomItem(QStandardItem):
     def setData(self, value: Any, role: int = ...) -> None:
         if role == Qt.EditRole:
             if self.name == 'Translate':
-                if re.fullmatch(regx_pattern, value):
-                    _list_val = re.split(regx_split_pattern, value)
-                    _list_val[1] = _list_val[1][:-1]
-                    self.key_word['Translate'] = _list_val[0]
-                    self.key_word['PartOfSpeach'] = _list_val[1]
-                else:
-                    message_critical_(self.window, 'укажите "перевод слова" и "часть речи" в скобках')
-                    self.window.buttonAdd.setChecked(False)
+                try:
+                    if re.fullmatch(regx_pattern, value):
+                        _list_val = re.split(regx_split_pattern, value)
+                        _list_val[1] = _list_val[1][:-1]
+                        self.key_word['Translate'] = _list_val[0]
+                        _list_val[1] = self.window.convert_part_of_speach(_list_val[1])
+                        self.key_word['PartOfSpeach'] = _list_val[1]
+                    else:
+                        message_critical_(self.window, 'укажите "перевод слова" и "часть речи" в скобках')
+                        self.window.buttonAdd.setChecked(False)
+                        return
+                except BaseException as ex:
+                    message_critical_(self.window, str(ex))
+                    return
             else:
                 self.key_word['Example'] = value
         if not self.window.button_save_db.isVisible():
@@ -84,6 +89,7 @@ class DictionaryWindow(QMainWindow):
         self._current_translate_id = None
         self._current_select_data = SelectData.ALL
         self._current_standard_item = None
+        self._current_selected_index_list_view = None
         self._player = QMediaPlayer()
         self.audioOutput = QAudioOutput()
         self._player.setAudioOutput(self.audioOutput)
@@ -96,31 +102,25 @@ class DictionaryWindow(QMainWindow):
         self.setMinimumSize(minSize)
         self.toolbar = QToolBar("toolbar")
         self.addToolBar(self.toolbar)
-        # QAction
         _icon_home = create_icon('home')
         button_action = QAction(_icon_home, "Your button", self)
         button_action.setStatusTip("This is your button")
         button_action.triggered.connect(self.onMyToolBarButtonClick)
         self.toolbar.addAction(button_action)
 
-        # self.set_data()
-
         self.layoutH = QHBoxLayout()
         self.layoutH_V = QVBoxLayout()
         self.lineEdit = QLineEdit()
         self.lineEdit.textChanged.connect(self.textChanged)
-        # self.lineEdit.returnPressed.connect(self.get_data)
         self.layoutH_V.addWidget(self.lineEdit)
 
         self.listW = QListView(self)
         self.model = Words()
         self.load()
         self.listW.doubleClicked.connect(self.getSelectIndex)
-        # self.listW.clicked.connect(self.getSelectIndex)
 
         self.listW.setModel(self.model)
         self.layoutH_V.addWidget(self.listW)
-        # self.listW.addItems(["One", "Two", "Three"])
         self.leftWidget = QWidget()
         self.leftWidget.setLayout(self.layoutH_V)
         self.layoutH.addWidget(self.leftWidget, stretch=1)
@@ -181,7 +181,6 @@ class DictionaryWindow(QMainWindow):
         _icon_save_db = create_icon('save_db')
         self.buttonAdd = QPushButton(_icon_plus, '')
         self.buttonAdd.setCheckable(True)
-        # self.buttonAdd.setHidden(True)
         self.button_delete = QPushButton(_icon_delete, '')
         self.button_delete.clicked.connect(self.delete)
         self.button_clear.clicked.connect(self.clear_treeview)
@@ -210,9 +209,13 @@ class DictionaryWindow(QMainWindow):
         widget = QWidget()
         widget.setLayout(self.layoutH)
         self.setCentralWidget(widget)
-        # self.set_add_visible_all(True)
 
     def set_add_visible_all(self, is_visible):
+        """
+                    Устанавливает видимость поля "слово","транскрипция" "перевод", "пример", "часть речи"
+                    :param is_visible: bool
+                    :return:
+                    """
         self.widget_bottom_right.setHidden(is_visible)
         self._label_word.setHidden(is_visible)
         self._label_transcription.setHidden(is_visible)
@@ -226,6 +229,11 @@ class DictionaryWindow(QMainWindow):
         self._line_example.setHidden(is_visible)
 
     def set_add_visible_translate(self, is_visible):
+        """
+              Устанавливает видимость поля "перевод", "пример", "часть речи"
+              :param is_visible: bool
+              :return:
+              """
         self.widget_bottom_right.setHidden(is_visible)
         self._label_translate.setHidden(is_visible)
         self._label_part_of_speach.setHidden(is_visible)
@@ -236,22 +244,43 @@ class DictionaryWindow(QMainWindow):
         self._current_select_data = SelectData.TRANSLATE
 
     def set_add_visible_example(self, is_visible):
+        """
+        Устанавливает видимость поля "пример"
+        :param is_visible: bool
+        :return:
+        """
         self.widget_bottom_right.setHidden(is_visible)
         self._label_example.setHidden(is_visible)
         self._line_example.setHidden(is_visible)
         self._current_select_data = SelectData.EXAMPLE
 
     def closeEvent(self, event: PySide6.QtGui.QCloseEvent):
+        """
+        Действия при закрытии окна
+        :param event:
+        :return:
+        """
         if not self.windowParent.isVisible():
             self.windowParent.show()
             self.windowParent.delete()
 
-    def onMyToolBarButtonClick(self, s):
+    @Slot()
+    def onMyToolBarButtonClick(self):
+        """
+        Скрывает текущие окно и
+        открывает родительское окно
+        :param s:
+        :return:
+        """
         self.windowParent.show()
         self.hide()
 
     def add_data(self):
-        # self.buttonAdd.setChecked(False)
+        """
+        Открывает поля для данных
+        и добавляет данные в TreeView
+        :return: Any
+        """
         if self.buttonAdd.isChecked():
             _indexes = self.treeview.selectedIndexes()
             if not _indexes:
@@ -281,6 +310,11 @@ class DictionaryWindow(QMainWindow):
                 self.add_word_translate_example()
 
     def add_example(self):
+        """
+        Добавляет пример в модель данных
+        и сохраняет его в БД
+        :return: Any
+        """
         self.set_add_visible_all(True)
         if self._current_select_data == SelectData.EXAMPLE:  # add example in model and db
             _text_example = self._line_example.text().strip()
@@ -296,10 +330,16 @@ class DictionaryWindow(QMainWindow):
                 self._standard_model.layoutChanged.emit()
 
     def add_translate_example(self):
+        """
+        Добавляет перевод и пример в модель данных
+        и сохраняет в БД
+        :return: Any
+        """
         _text_translate = self._line_translate.text().strip()
         if not _text_translate:
             return
         _text_part_of_speach = self._line_part_of_speach.text().strip()
+        _text_translate = self.convert_part_of_speach(_text_part_of_speach)
         _text_example = self._line_example.text().strip()
         _id = insert_data(self._current_word_id, _text_translate, _text_part_of_speach, index=11,
                           window=self)
@@ -323,6 +363,11 @@ class DictionaryWindow(QMainWindow):
         self._standard_model.layoutChanged.emit()
 
     def add_word_translate_example(self):
+        """
+        Добавляет слово, перевод, пример в модель данных TreeView
+        и сохраняет в БД
+        :return:
+        """
         _text_word = self._line_word.text().strip()
         if not _text_word:
             return
@@ -332,6 +377,7 @@ class DictionaryWindow(QMainWindow):
         if not _text_translate:
             return
         _text_part_of_speach = self._line_part_of_speach.text().strip()
+        _text_part_of_speach = self.convert_part_of_speach(_text_part_of_speach)
         _text_example = self._line_example.text().strip()
         _current_data = date.today()
         _word_id = insert_data(_text_word, _sound_name, _text_transcription, 1, _current_data, _current_data,
@@ -356,7 +402,7 @@ class DictionaryWindow(QMainWindow):
                 _key_word_example = {'id': id_ex, 'TranslateId': _translate_id,
                                      'Example': _text_example}
                 _example_item = self.create_customItem(name='Example', key_word=_key_word_example,
-                                                       parent=translate_item),
+                                                       parent=translate_item)
                 count_row = translate_item.rowCount()
                 translate_item.setChild(count_row, 0, _example_item)
             count_row = _word_item.rowCount()
@@ -368,20 +414,34 @@ class DictionaryWindow(QMainWindow):
             self._standard_model.layoutChanged.emit()
 
     def load(self):
+        """
+        Загружает список слов из БД
+        в ListView
+        :return:
+        """
         if load(self):
             self.model.words = select_data(self, 0)
 
+    @Slot(str)
     def textChanged(self, s):
+        """
+        Фильтрует слова по начальным буквам
+        :param s: строка
+        :return: Any
+        """
         self.text_lineEdit = s
-        self.model.words = select_data(self, 1, s)
+        self.model.words = select_data_like(self, 1, s)
         self.model.layoutChanged.emit()
 
-    # def get_data(self):
-    #     print(self.text_lineEdit)
-
     def getSelectIndex(self):
+        """
+        Получаем индекс выделенного слова в ListView
+        и добавляем элемент в модель TreeView
+        :return:
+        """
         listSelectedIndex = self.listW.selectedIndexes()
         index = listSelectedIndex[0]
+        self._current_selected_index_list_view = index
         listData = self.model.words[index.row()]
         _word_id = listData[0]
         _word = listData[1]
@@ -391,23 +451,25 @@ class DictionaryWindow(QMainWindow):
         self._current_sound_file = os.path.join(os.path.abspath(_path_audio), _sound_name)
 
     def setData(self, idWord, word):
+        """
+        Создает элемент (word, translate,example)
+        и добавляет его в модель TreeView
+        :param idWord: id
+        :param word: word
+        :return: Any
+        """
         self._current_word_id = idWord
         self._standard_model = QStandardItemModel(self)
-        # self._standard_model.itemChanged.connect(self.test)
         root_node = self._standard_model.invisibleRootItem()
-
         word_item = QStandardItem(word)
         word_item.setEditable(False)
         font_word = word_item.font()
         font_word.setPointSize(16)
         word_item.setFont(font_word)
-
         list_data = select_data(self, 2, idWord)
         _tuple = list_data[0]
-        # self.current_sound = _tuple[2]
         self.labelTranscription.setText(_tuple[1])
         self.labelWord.setText(word)
-
         list_data = select_data(self, 3, idWord)
         for i in range(len(list_data)):
             m_tuple = list_data[i]
@@ -425,47 +487,53 @@ class DictionaryWindow(QMainWindow):
         self.treeview.setModel(self._standard_model)
         self._standard_model.layoutChanged.emit()
 
+    @Slot()
     def playSound(self):
+        """
+        Проигрывает звук
+        :return:
+        """
         _file = QUrl.fromLocalFile(self._current_sound_file)
         self._player.setSource(_file)
         self._player.play()
 
-    @Slot(QItemSelection, QItemSelection)
-    def selection_changed_slot(self, new_selection, old_selection):
-        print(old_selection)
-
     @Slot()
     def delete(self):
+        """
+        Удаляет (слово, перевод, пример) в зависимости от
+        выбора из модели TreeView
+        :return:
+        """
         _indexes = self.treeview.selectedIndexes()
-        _index = None
-        _row = None
+        item_parent = None
         if _indexes:
-            button = messageBox_question(self, 'Вы точно хотите удалить выбранное?')
-            if button == QMessageBox.No:
-                return
             _item = self._standard_model.itemFromIndex(_indexes[0])
-            if type(_item) == CustomItem:
-                if _item.name == 'Translate':
-                    delete_data(self, 6, _item.key_word['id'])
-
+            button = messageBox_question(self, "Вы точно хотите удалить '{:s}'?".format(_item.text()))
+            if button == QMessageBox.Yes:
+                if type(_item) == CustomItem:
+                    if _item.name == 'Translate':
+                        delete_data(self, 6, _item.key_word['id'])  # delete translate
+                        item_parent = _item.parent
+                    else:
+                        delete_data(self, 5, _item.key_word['id'])  # delete example
+                        item_parent = _item.parent
                 else:
-                    _translate_id = _item.get_key_word['id']
-                    delete_data(self, 5, _translate_id)
-            else:
-                _id = _item.get_key_word['id']
-                delete_data(self, 7, _id)
-            _index = _indexes[0]
-            item_parent = _item.parent
-            parent_row = item_parent.row()
-            index_row = _index.row()
-            item_parent.removeRow(index_row)
-            # self._standard_model.removeRow(_row, _index)
+                    delete_data(self, 7, self._current_word_id)  # delete word
+                    del self.listW.model().words[self._current_selected_index_list_view.row()]
+                    self.listW.model().layoutChanged.emit()
+                    item_parent = self._standard_model.invisibleRootItem()
+                    self.clear_treeview()
+            item_parent.removeRow(_indexes[0].row())
             self._standard_model.layoutChanged.emit()
         else:
             messageBox_warning(self, 'ничего не выбрано')
 
     @Slot()
     def update_data_db(self):
+        """
+        Вносит в БД отредактированные значения
+        перевода или примера:return:
+        """
         root_node = self._standard_model.invisibleRootItem()
         _word_item = root_node.child(0, 0)
         for i in range(_word_item.rowCount()):
@@ -484,6 +552,11 @@ class DictionaryWindow(QMainWindow):
 
     @Slot()
     def clear_treeview(self):
+        """
+        Удаляет текст из 'меток',
+        и заменяет модель TreeView на пустую.
+        :return:
+        """
         self.labelWord.setText('')
         self.labelTranscription.setText('')
         self._current_word_id = None
@@ -492,17 +565,38 @@ class DictionaryWindow(QMainWindow):
         self.treeview.setModel(self._standard_model)
         self._current_select_data = SelectData.ALL
 
-    def add_new_example(self, translate_id):
-        text = self._line_example.text()
-
-    def create_customItem(self, name, key_word, parent):
+    def create_customItem(self, name, key_word, parent) -> CustomItem:
+        """
+        Создает CustomItem
+        :param name: Имя элемента
+        :param key_word: словарь
+        :param parent: родитель
+        :return: CustomItem
+        """
         return CustomItem(window=self, name=name, key_word=key_word, parent=parent)
 
-    @Slot(QStandardItem)
-    def test(item):
-        # _indexes = self.treeview.selectedIndexes()
-        # _index = _indexes[0]
-        # _data = self._standard_model.data(_index)
-        # print(_data)
-        # _item = self._standard_model.itemFromIndex(_index)
-        print(item)
+    def convert_part_of_speach(self, s):
+        _str = ''
+        if s.startswith('сущ'):
+            _str = 'сущ'
+        if s.startswith('прил'):
+            _str = 'прил'
+        if s.startswith('гл'):
+            _str = 'гл'
+        if s.startswith('мест'):
+            _str = 'мест'
+        if s.startswith('нар'):
+            _str = 'наречие'
+        if s.startswith('числ'):
+            _str = 'числительное'
+        if s.startswith('союз'):
+            _str = 'союз'
+        if s.startswith('пред'):
+            _str = 'предлог'
+        if s.startswith('час'):
+            _str = 'частица'
+        if s.startswith('воск'):
+            _str = 'восклицание'
+        if s.startswith('арт'):
+            _str = 'артикул'
+        return _str
