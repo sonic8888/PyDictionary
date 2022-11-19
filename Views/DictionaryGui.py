@@ -2,13 +2,15 @@ import os
 import re
 from datetime import date
 from typing import Any
+
 import PySide6
 from PySide6 import QtGui
-from PySide6.QtCore import QSize, Qt, Slot, QItemSelection, QUrl
+from PySide6.QtCore import QSize, Qt, Slot, QUrl
 from PySide6.QtGui import QAction, QStandardItemModel, QStandardItem, QFont
 from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
 from PySide6.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QHBoxLayout, QToolBar, QListView, \
     QLineEdit, QTreeView, QPushButton, QLabel, QGridLayout
+
 from DataSettings import create_icon, list_resources, window_title, SelectData
 from Models.WordsModel import Words
 from Servise.Db.Sqlite.SqliteApplication import select_data, delete_data, update_data, insert_data, load, \
@@ -76,6 +78,33 @@ class CustomItem(QStandardItem):
     @property
     def get_key_word(self):
         return self.key_word
+
+
+def convert_part_of_speach(s):
+    _str = ''
+    if s.startswith('сущ'):
+        _str = 'сущ'
+    if s.startswith('прил'):
+        _str = 'прил'
+    if s.startswith('гл'):
+        _str = 'гл'
+    if s.startswith('мест'):
+        _str = 'мест'
+    if s.startswith('нар'):
+        _str = 'наречие'
+    if s.startswith('числ'):
+        _str = 'числительное'
+    if s.startswith('союз'):
+        _str = 'союз'
+    if s.startswith('пред'):
+        _str = 'предлог'
+    if s.startswith('час'):
+        _str = 'частица'
+    if s.startswith('воск'):
+        _str = 'восклицание'
+    if s.startswith('арт'):
+        _str = 'артикул'
+    return _str
 
 
 class DictionaryWindow(QMainWindow):
@@ -224,6 +253,7 @@ class DictionaryWindow(QMainWindow):
         self._label_example.setHidden(is_visible)
         self._line_part_of_speach.setHidden(is_visible)
         self._line_word.setHidden(is_visible)
+        self._line_word.setFocus()
         self._line_transcription.setHidden(is_visible)
         self._line_translate.setHidden(is_visible)
         self._line_example.setHidden(is_visible)
@@ -239,6 +269,7 @@ class DictionaryWindow(QMainWindow):
         self._label_part_of_speach.setHidden(is_visible)
         self._label_example.setHidden(is_visible)
         self._line_translate.setHidden(is_visible)
+        self._line_translate.setFocus()
         self._line_part_of_speach.setHidden(is_visible)
         self._line_example.setHidden(is_visible)
         self._current_select_data = SelectData.TRANSLATE
@@ -252,6 +283,7 @@ class DictionaryWindow(QMainWindow):
         self.widget_bottom_right.setHidden(is_visible)
         self._label_example.setHidden(is_visible)
         self._line_example.setHidden(is_visible)
+        self._line_example.setFocus()
         self._current_select_data = SelectData.EXAMPLE
 
     def closeEvent(self, event: PySide6.QtGui.QCloseEvent):
@@ -268,8 +300,7 @@ class DictionaryWindow(QMainWindow):
     def onMyToolBarButtonClick(self):
         """
         Скрывает текущие окно и
-        открывает родительское окно
-        :param s:
+        открывает родительское окно.
         :return:
         """
         self.windowParent.show()
@@ -339,7 +370,7 @@ class DictionaryWindow(QMainWindow):
         if not _text_translate:
             return
         _text_part_of_speach = self._line_part_of_speach.text().strip()
-        _text_translate = self.convert_part_of_speach(_text_part_of_speach)
+        _text_translate = convert_part_of_speach(_text_part_of_speach)
         _text_example = self._line_example.text().strip()
         _id = insert_data(self._current_word_id, _text_translate, _text_part_of_speach, index=11,
                           window=self)
@@ -377,7 +408,7 @@ class DictionaryWindow(QMainWindow):
         if not _text_translate:
             return
         _text_part_of_speach = self._line_part_of_speach.text().strip()
-        _text_part_of_speach = self.convert_part_of_speach(_text_part_of_speach)
+        _text_part_of_speach = convert_part_of_speach(_text_part_of_speach)
         _text_example = self._line_example.text().strip()
         _current_data = date.today()
         _word_id = insert_data(_text_word, _sound_name, _text_transcription, 1, _current_data, _current_data,
@@ -574,29 +605,3 @@ class DictionaryWindow(QMainWindow):
         :return: CustomItem
         """
         return CustomItem(window=self, name=name, key_word=key_word, parent=parent)
-
-    def convert_part_of_speach(self, s):
-        _str = ''
-        if s.startswith('сущ'):
-            _str = 'сущ'
-        if s.startswith('прил'):
-            _str = 'прил'
-        if s.startswith('гл'):
-            _str = 'гл'
-        if s.startswith('мест'):
-            _str = 'мест'
-        if s.startswith('нар'):
-            _str = 'наречие'
-        if s.startswith('числ'):
-            _str = 'числительное'
-        if s.startswith('союз'):
-            _str = 'союз'
-        if s.startswith('пред'):
-            _str = 'предлог'
-        if s.startswith('час'):
-            _str = 'частица'
-        if s.startswith('воск'):
-            _str = 'восклицание'
-        if s.startswith('арт'):
-            _str = 'артикул'
-        return _str
