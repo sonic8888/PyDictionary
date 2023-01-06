@@ -1,0 +1,15 @@
+{
+  "FOLDER_ID": "b1g6omcgou764fnj6h2r",
+  "PATH_NAME_IAM_TOKEN": "json/token.json",
+  "OAUTH_TOKEN": "y0_AgAAAAAJgrMxAATuwQAAAADYuzvQYvJT3zfmQ1Ot2bPLc9RsvVkaloI",
+  "CURRENT_THEME_NAME": "dark_blue.xml",
+  "FONT_SIZE": {
+    "QLineEdit": "18px",
+    "QTextEdit": "16px"
+  },
+  "PATH_NAME":{
+  "IAM_TOKEN": "json/token.json",
+    "SETTINGS": "json/settings.json",
+    "AUDIO_TEMP": "Audio/temp"
+}
+}

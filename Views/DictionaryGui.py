@@ -5,7 +5,7 @@ from typing import Any
 
 import PySide6
 from PySide6 import QtGui
-from PySide6.QtCore import QSize, Qt, Slot, QUrl
+from PySide6.QtCore import QSize, Qt, Slot, QUrl, QSettings
 from PySide6.QtGui import QAction, QStandardItemModel, QStandardItem, QFont
 from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
 from PySide6.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QHBoxLayout, QToolBar, QListView, \
@@ -111,6 +111,7 @@ class DictionaryWindow(QMainWindow):
 
     def __init__(self, geometryWindow, widowParent):
         super(DictionaryWindow, self).__init__()
+        self.settings = QSettings('tsb', 'PyDictionary', parent=self)
         self.text_lineEdit = ''
         self._standard_model = None
         self._current_sound_file = ''
@@ -234,10 +235,27 @@ class DictionaryWindow(QMainWindow):
         self.layoutVWidgetRight.addWidget(self.widgetForTree, stretch=9)
         self.layoutVWidgetRight.addWidget(self.widget_bottom_right)
         self.layoutH.addWidget(self.widgetRight, stretch=2)
-
+        # self.set_settings()
+        self.load_settings()
         widget = QWidget()
         widget.setLayout(self.layoutH)
         self.setCentralWidget(widget)
+
+    def set_settings(self):
+        v1 = 123
+        v2 = 'Python'
+        v3 = QSize(600, 400)
+        self.settings.setValue('v1', v1)
+        self.settings.setValue('v2', v2)
+        self.settings.setValue('v3', v3)
+
+    def load_settings(self):
+        score = self.settings.scope()
+        format = self.settings.format()
+        file_name = self.settings.fileName()
+        print(f'score:{score}, format:{format}, file_name:{file_name}')
+        v1 = self.settings.value('v3', 99)
+        print(type(v1))
 
     def set_add_visible_all(self, is_visible):
         """
