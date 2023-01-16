@@ -346,8 +346,9 @@ def insert_data(response, path_name_db):
         if not last_word_id:
             word = item.get('text', '')
             ts = item.get('ts', '')
-            _list_words_data = [word, ts]
-            if not execute_db(con, cur, "INSERT INTO Words (word, ts) VALUES (?, ?)", _list_words_data):
+            translate = item.get('tr', [])[0].get('text', '')
+            _list_words_data = [word, ts, translate]
+            if not execute_db(con, cur, "INSERT INTO Words (word, ts, translate) VALUES (?, ?, ?)", _list_words_data):
                 return
             last_word_id = cur.lastrowid
             _list_response_data = [last_word_id, response.text]

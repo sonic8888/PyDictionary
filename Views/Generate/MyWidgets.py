@@ -22,3 +22,4 @@ class MyTable(QTableView):
         word = data.text()
         res = get_data(word)
         self.window_show_db.insert_data_textEdit(res)
+        self.window_show_db.current_word = word
