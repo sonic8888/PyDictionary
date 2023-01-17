@@ -275,11 +275,11 @@ def get_token(oauth_token, path_iam_token):
         s = json.dumps(response.json(), indent=4, sort_keys=True, ensure_ascii=False)
         with open(path_iam_token, "w", encoding='utf-8') as file:
             file.write(s)
-        display_error("операция обновления 'iamToken' прошла успешно")
+        display_info("операция обновления 'iamToken' прошла успешно")
         logging_tools.info("'iamToken' update operation succeeded")
     else:
-        display_error(response.status_code)
-        logging_tools.warning(f"response.status_code: {response.status_code}")
+        display_info("не удалось обновить 'iamToken'", response.status_code)
+        logging_tools.warning("не удалось обновить 'iamToken'", f"response.status_code: {response.status_code}")
 
 
 def check_token(data_token):
@@ -328,7 +328,7 @@ def create_table(path_db, path_create_db):
     con.commit()
     cur.close()
     con.close()
-    display_error(f'создание пустой БД: {path_db}')
+    display_info(f'создание пустой БД: {path_db}')
     logging_tools.info(f"Create empty Db: {path_db}")
 
 
@@ -491,6 +491,11 @@ def display_error(*args):
         print(str(item))
 
 
+def display_info(*args):
+    for item in args:
+        print(str(item))
+
+
 def wrapperHTML(teg, text, style_color=None, style_margin=None):
     if not text:
         return text
@@ -635,7 +640,7 @@ def play_sound(path_sound):
         logging_tools.exception(f"File cannot be played: {path_sound}")
 
 
-def get_data( word):
+def get_data(word):
     s = Settings()
     connection_db = ConnectDb(s.name_db)
     con = connection_db.get_connect

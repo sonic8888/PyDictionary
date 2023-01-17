@@ -37,6 +37,7 @@ class WindowDb(QtWidgets.QMainWindow, Ui_MainWindow):
         self.label_2.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.pushButton.setText('sound')
         self.pushButton.clicked.connect(self.sound)
+        self.lineEdit.setFocus()
 
     def resizeEvent(self, event: PySide6.QtGui.QResizeEvent) -> None:
         # print("hello")
