@@ -144,5 +144,7 @@ if __name__ == '__main__':
         {'name': 'IBM', 'shares': 200, 'price': 95.25}
     ]
 
-    _l_name = [item['name'] for item in portfolio if item['shares'] > 100]
-    print(_l_name)
+    # _l_name = [item['name'] for item in portfolio if item['shares'] > 100]
+    # print(_l_name)
+    for i , item in enumerate(portfolio, start=100):
+        print(i)

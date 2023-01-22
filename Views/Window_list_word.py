@@ -131,6 +131,7 @@ class WindowList(QtWidgets.QMainWindow, Ui_MainWindow):
         self.pushButton_3.setText("создать")
         self.pushButton_4.setText("удалить")
         self.pushButton.clicked.connect(self.add)  # добавить
+        self.pushButton_2.clicked.connect(self.select_word)
         self.lineEdit.setReadOnly(True)
         # self.lineEdit.setMinimumWidth(150)
         self.lineEdit_2.setReadOnly(True)
@@ -207,7 +208,7 @@ class WindowList(QtWidgets.QMainWindow, Ui_MainWindow):
                                operation_cur='fetchall')
         self._list_data = list(res)
         self.current_list_name = self._list_data[0][1]
-        self.lineEdit_2.setText(self.current_list_name )
+        self.lineEdit_2.setText(self.current_list_name)
         for item in self._list_data:
             self.comboBox.addItem(item[1])
 
@@ -225,3 +226,10 @@ class WindowList(QtWidgets.QMainWindow, Ui_MainWindow):
     def init(self):
         self.load_list()
         self.init_current_list_data()
+
+    def select_word(self):
+        if self._sti:
+            model_index = self.tableView.selectionModel().selectedIndexes()
+            data = self._sti.item(model_index[0].row(), 0)
+            word = data.text()
+            print(word)
