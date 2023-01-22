@@ -230,6 +230,5 @@ class WindowList(QtWidgets.QMainWindow, Ui_MainWindow):
     def select_word(self):
         if self._sti:
             model_index = self.tableView.selectionModel().selectedIndexes()
-            data = self._sti.item(model_index[0].row(), 0)
-            word = data.text()
-            print(word)
+            self._sti.removeRows(model_index[0].row(),1)
+            self._sti.layoutChanged.emit()
