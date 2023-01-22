@@ -181,18 +181,24 @@ class ConnectDb:
     _cached_statements = None
     _uri = None
 
-    def __new__(cls, path_name_db, timeout=5.0, detect_types=0, isolation_level='DEFERRED',
-                check_same_thread=True, factory=sqlite3.Connection, cached_statements=128, uri=False):
+    def __new__(cls, path_name_db, **kwargs):
         if not cls.instance:
             cls.instance = object.__new__(cls)
         cls._path_name = path_name_db
-        cls._timeout = timeout
-        cls._detect_types = detect_types
-        cls._isolation_level = isolation_level
-        cls._check_same_thread = check_same_thread
-        cls._factory = factory
-        cls._cached_statements = cached_statements
-        cls._uri = uri
+        _dict_connect_param = {'timeout': 5.0, 'detect_types': 0, 'isolation_level': 'DEFERRED',
+                               'check_same_thread': True, 'factory': sqlite3.Connection,
+                               'cached_statements': 128, 'uri': False}
+
+        for key, value in kwargs.items():
+            if key in _dict_connect_param:
+                _dict_connect_param[key] = value
+        cls._timeout = _dict_connect_param['timeout']
+        cls._detect_types = _dict_connect_param['detect_types']
+        cls._isolation_level = _dict_connect_param['isolation_level']
+        cls._check_same_thread = _dict_connect_param['check_same_thread']
+        cls._factory = _dict_connect_param['factory']
+        cls._cached_statements = _dict_connect_param['cached_statements']
+        cls._uri = _dict_connect_param['uri']
         return cls.instance
 
     @property
@@ -335,6 +341,8 @@ def create_table(path_db, path_create_db):
 def insert_data(response, path_name_db):
     data = response.json()
     list_data = data['def']
+    # if not list_data:
+    #     return None
     word = ''
     connect_db = ConnectDb(path_name_db)
     con = connect_db.get_connect
@@ -410,7 +418,8 @@ def insert_data(response, path_name_db):
     con.commit()
     cur.close()
     con.close()
-    display_error(f"'{word}' - успешно сохранено в БД")
+    display_info(f"'{word}' - успешно сохранено в БД")
+    return last_word_id
 
 
 def execute_db(connect, cursor, sql_query, sequence_data=None):
@@ -418,52 +427,52 @@ def execute_db(connect, cursor, sql_query, sequence_data=None):
         cursor.execute(sql_query, sequence_data)
         return connect
     except IntegrityError as ei:
-        cursor.close()
-        connect.close()
         display_error(ei)
         logging_tools.exception(ei)
+        cursor.close()
+        connect.close()
         return None
     except NotSupportedError as nse:
-        cursor.close()
-        connect.close()
         display_error(nse)
         logging_tools.exception(nse)
+        cursor.close()
+        connect.close()
         return None
     except ProgrammingError as pe:
-        cursor.close()
-        connect.close()
         display_error(pe)
         logging_tools.exception(pe)
+        cursor.close()
+        connect.close()
         return None
     except InternalError as ier:
-        cursor.close()
-        connect.close()
         display_error(ier)
         logging_tools.exception(ier)
+        cursor.close()
+        connect.close()
         return None
     except DataError as de:
-        cursor.close()
-        connect.close()
         display_error(de)
         logging_tools.exception(de)
+        cursor.close()
+        connect.close()
         return None
     except DatabaseError as dbe:
-        cursor.close()
-        connect.close()
         display_error(dbe)
         logging_tools.exception(dbe)
+        cursor.close()
+        connect.close()
         return None
     except InterfaceError as ier:
-        cursor.close()
-        connect.close()
         display_error(ier)
         logging_tools.exception(ier)
-        return None
-    except Error as error:
         cursor.close()
         connect.close()
+        return None
+    except Error as error:
         display_error(error)
         logging_tools.exception(error)
+        cursor.close()
+        connect.close()
         return None
 
 
@@ -489,6 +498,14 @@ def clear_folder_temp(path_direct):
 def display_error(*args):
     for item in args:
         print(str(item))
+
+
+def create_con_cur(path_name_db, timeout=None, detect_types=None, isolation_level=None,
+                   check_same_thread=None, factory=None, cached_statements=None, uri=None):
+    connectDd = ConnectDb(path_name_db)
+    con = connectDd.get_connect
+    cur = con.cursor()
+    return con, cur
 
 
 def display_info(*args):
@@ -653,3 +670,56 @@ def get_data(word):
     cur.close()
     con.close()
     return res
+
+
+def get_data_general(sql, params_sql, operation_ex='execute', operation_cur='fetchone', commit=None,
+                     path_db='dictionary.db'):
+
+    connectionDB = ConnectDb(path_name_db=path_db)
+    connect = connectionDB.get_connect
+    cursor = connect.cursor()
+    try:
+        execute = getattr(cursor, operation_ex)
+        execute(sql, params_sql)
+        if commit:
+            connect.commit()
+            return None
+        else:
+            fetch = getattr(cursor, operation_cur)
+            res = fetch()
+            return res
+    except IntegrityError as ei:
+        display_error(ei)
+        logging_tools.exception(ei)
+        return None
+    except NotSupportedError as nse:
+        display_error(nse)
+        logging_tools.exception(nse)
+        return None
+    except ProgrammingError as pe:
+        display_error(pe)
+        logging_tools.exception(pe)
+        return None
+    except InternalError as ier:
+        display_error(ier)
+        logging_tools.exception(ier)
+        return None
+    except DataError as de:
+        display_error(de)
+        logging_tools.exception(de)
+        return None
+    except DatabaseError as dbe:
+        display_error(dbe)
+        logging_tools.exception(dbe)
+        return None
+    except InterfaceError as ier:
+        display_error(ier)
+        logging_tools.exception(ier)
+        return None
+    except Error as error:
+        display_error(error)
+        logging_tools.exception(error)
+        return None
+    finally:
+        cursor.close()
+        connect.close()

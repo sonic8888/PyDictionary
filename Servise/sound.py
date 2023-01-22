@@ -34,9 +34,9 @@ def synthesize(folder_id, iam_token, text):
             yield chunk
 
 
-def get_word_sound(word, folder_id, iam_token):
+def get_word_sound(word, folder_id, iam_token, path_save):
     s = Settings()
-    path_name = s.path_name_audio_temp + f'\\{word}.mp3'
+    path_name = path_save + f'\\{word}.mp3'
     if not path.exists(path_name):
         response = None
         try:

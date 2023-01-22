@@ -15,6 +15,18 @@
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
+    <property name="leftMargin">
+     <number>40</number>
+    </property>
+    <property name="topMargin">
+     <number>40</number>
+    </property>
+    <property name="rightMargin">
+     <number>40</number>
+    </property>
+    <property name="bottomMargin">
+     <number>40</number>
+    </property>
     <item row="0" column="2">
      <layout class="QHBoxLayout" name="horizontalLayout_2">
       <item>
@@ -92,7 +104,7 @@
      <x>0</x>
      <y>0</y>
      <width>1034</width>
-     <height>25</height>
+     <height>21</height>
     </rect>
    </property>
   </widget>

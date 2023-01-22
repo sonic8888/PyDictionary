@@ -5,9 +5,9 @@ from PySide6.QtWidgets import QTableView
 from Servise.tools import get_data
 
 
-class MyTable(QTableView):
+class MyTable1(QTableView):
     def __init__(self, parent):
-        super(MyTable, self).__init__(parent=parent)
+        super(MyTable1, self).__init__(parent=parent)
         self.window_show_db = None
 
     def resizeEvent(self, event: PySide6.QtGui.QResizeEvent) -> None:
@@ -23,3 +23,13 @@ class MyTable(QTableView):
         res = get_data(word)
         self.window_show_db.insert_data_textEdit(res)
         self.window_show_db.current_word = word
+
+
+class MyTable2(QTableView):
+    def __init__(self, parent):
+        super(MyTable2, self).__init__(parent=parent)
+
+    def resizeEvent(self, event: PySide6.QtGui.QResizeEvent) -> None:
+        _width = event.size().width()
+        self.setColumnWidth(0, _width * 0.5)
+        self.setColumnWidth(1, _width * 0.5)

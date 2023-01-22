@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'window_data.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.4.0
+## Created by: Qt User Interface Compiler version 6.4.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -19,9 +19,7 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QGridLayout, QHBoxLayout
     QHeaderView, QLabel, QLineEdit, QMainWindow,
     QMenuBar, QPushButton, QSizePolicy, QStatusBar,
     QTableView, QTextEdit, QWidget)
-
-from Views.Generate.MyWidgets import MyTable
-
+from Views.Generate.MyWidgets import MyTable1
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -32,6 +30,7 @@ class Ui_MainWindow(object):
         self.centralwidget.setObjectName(u"centralwidget")
         self.gridLayout = QGridLayout(self.centralwidget)
         self.gridLayout.setObjectName(u"gridLayout")
+        self.gridLayout.setContentsMargins(40, 40, 40, 40)
         self.horizontalLayout_2 = QHBoxLayout()
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
         self.pushButton = QPushButton(self.centralwidget)
@@ -77,7 +76,7 @@ class Ui_MainWindow(object):
 
         self.gridLayout.addWidget(self.label_2, 1, 2, 1, 1)
 
-        self.tableView = MyTable(self.centralwidget)
+        self.tableView = MyTable1(self.centralwidget)
         self.tableView.setObjectName(u"tableView")
 
         self.gridLayout.addWidget(self.tableView, 2, 0, 1, 1)
@@ -100,7 +99,7 @@ class Ui_MainWindow(object):
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QMenuBar(MainWindow)
         self.menubar.setObjectName(u"menubar")
-        self.menubar.setGeometry(QRect(0, 0, 1034, 25))
+        self.menubar.setGeometry(QRect(0, 0, 1034, 21))
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QStatusBar(MainWindow)
         self.statusbar.setObjectName(u"statusbar")

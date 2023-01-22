@@ -7,6 +7,7 @@ from PySide6.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QHBoxLayout, QT
 from Views.YanexTranslate import YandexTranslateWindow
 from Servise.tools import create_style, clear_folder_temp, Settings, display_error
 from Views.Window_show_db import WindowDb
+from Views.Window_list_word import WindowList
 
 logging_home = logging.getLogger(__name__)
 logging_home.setLevel(logging.INFO)
@@ -25,7 +26,7 @@ class HomeWindows(QMainWindow):
         super(HomeWindows, self).__init__()
         self.geometryWindow = geometryWindow
         self.window_db = None
-        self.window_yandex_translate = None
+        self.window_list_word = None
         self.yandex_translate_window = None
         self.setWindowTitle("Home")
         self.name = 'HomeWindows'
@@ -37,11 +38,11 @@ class HomeWindows(QMainWindow):
 
         #  button
         self.buttonOne = QPushButton('словарь')
-        self.buttonOne.clicked.connect(self.open_window_dictionary)
+        self.buttonOne.clicked.connect(self.open_window_list_word)
         self.buttonTwo = QPushButton('тренировка')
-        self.buttonTwo.clicked.connect(self.open_window_yandex_translate)
+        self.buttonTwo.clicked.connect(self.open_window_show_db)
         self.buttonThree = QPushButton('задание')
-        self.buttonThree.clicked.connect(self.buttonThree_clicked)
+        self.buttonThree.clicked.connect(self.open_window_yandex_translate)
 
         # layout
         layoutV = QVBoxLayout()
@@ -84,51 +85,80 @@ class HomeWindows(QMainWindow):
         clear_folder_temp(self.settings.path_name_audio_temp)
         print("closeEvent")
 
+    # def open_window_show_db(self):
+    #     if self.window_db:
+    #         self.window_db.show()
+    #         self.hide()
+    #     else:
+    #         self.window_db = WindowDb(self.geometryWindow)
+    #         s = Settings()
+    #
+    #         try:
+    #             font_line = s.settings['FONT_SIZE']['QLineEdit']
+    #             font_text = s.settings['FONT_SIZE']['QTextEdit']
+    #             font_label = s.settings['FONT_SIZE']['QLabel']
+    #         except KeyError as k:
+    #             display_error('не удалось установить размер шрифта')
+    #             logging_home.exception('не удалось установить размер шрифта', k)
+    #             font_line = '9px'
+    #             font_text = '9px'
+    #             font_label = '9px'
+    #         style = create_style(QLineEdit=('font-size', font_line), QTextEdit=('font-size', font_text),
+    #                              QLabel=('font-size', font_label))
+    #         self.window_db.setStyleSheet(style)
+    #         self.window_db.show()
+    #         self.hide()
+
     def open_window_yandex_translate(self):
-        if self.window_db:
-            self.window_db.show()
+        s = Settings()
+
+        try:
+            font_line = s.settings['FONT_SIZE']['QLineEdit']
+            font_text = s.settings['FONT_SIZE']['QTextEdit']
+        except KeyError as k:
+            display_error('не удалось установить размер шрифта')
+            logging_home.exception('не удалось установить размер шрифта', k)
+            font_line = '9px'
+            font_text = '9px'
+        style = create_style(QLineEdit=('font-size', font_line), QTextEdit=('font-size', font_text))
+        self.open_window(self.yandex_translate_window, 'window_yandex_translate', style)
+
+    def open_window_list_word(self):
+        self.open_window(self.window_list_word, 'window_list_word')
+
+    def create_windows(self, name_window_class):
+        match name_window_class:
+            case 'window_show_db':
+                return WindowDb(self.geometryWindow, self)
+            case 'window_yandex_translate':
+                return YandexTranslateWindow(self.geometryWindow, self)
+            case 'window_list_word':
+                return WindowList(self.geometryWindow, self)
+            case _:
+                return None
+
+    def open_window(self, window_variable, name_window_class, style_window=None):
+        if window_variable:
+            window_variable.show()
             self.hide()
         else:
-            self.window_db = WindowDb(self.geometryWindow)
-            s = Settings()
-
-            try:
-                font_line = s.settings['FONT_SIZE']['QLineEdit']
-                font_text = s.settings['FONT_SIZE']['QTextEdit']
-                font_label = s.settings['FONT_SIZE']['QLabel']
-            except KeyError as k:
-                display_error('не удалось установить размер шрифта')
-                logging_home.exception('не удалось установить размер шрифта', k)
-                font_line = '9px'
-                font_text = '9px'
-                font_label = '9px'
-            style = create_style(QLineEdit=('font-size', font_line), QTextEdit=('font-size', font_text),
-                                 QLabel=('font-size', font_label))
-            self.window_db.setStyleSheet(style)
-            self.window_db.show()
+            window_variable = self.create_windows(name_window_class)
+            window_variable.setStyleSheet(style_window)
+            window_variable.show()
             self.hide()
 
-    def buttonThree_clicked(self):
-        if self.yandex_translate_window:
-            self.yandex_translate_window.show()
-            self.hide()
-        else:
-            self.yandex_translate_window = YandexTranslateWindow(self.geometryWindow)
-            s = Settings()
-
-            try:
-                font_line = s.settings['FONT_SIZE']['QLineEdit']
-                font_text = s.settings['FONT_SIZE']['QTextEdit']
-            except KeyError as k:
-                display_error('не удалось установить размер шрифта')
-                logging_home.exception('не удалось установить размер шрифта', k)
-                font_line = '9px'
-                font_text = '9px'
-
-            style = create_style(QLineEdit=('font-size', font_line), QTextEdit=('font-size', font_text))
-            self.yandex_translate_window.setStyleSheet(style)
-            self.yandex_translate_window.show()
-            self.hide()
+    def open_window_show_db(self):
+        s = Settings()
+        try:
+            font_line = s.settings['FONT_SIZE']['QLineEdit']
+            font_text = s.settings['FONT_SIZE']['QTextEdit']
+        except KeyError as k:
+            display_error('не удалось установить размер шрифта')
+            logging_home.exception('не удалось установить размер шрифта', k)
+            font_line = '9px'
+            font_text = '9px'
+        style = create_style(QLineEdit=('font-size', font_line), QTextEdit=('font-size', font_text))
+        self.open_window(self.window_db, 'window_show_db', style)
 
     def mousePressEvent(self, e):
         print("ggggg")

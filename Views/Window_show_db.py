@@ -19,8 +19,8 @@ logging_wsd.addHandler(_handler)
 
 
 class WindowDb(QtWidgets.QMainWindow, Ui_MainWindow):
-    def __init__(self, geometryWindow):
-        super(WindowDb, self).__init__()
+    def __init__(self, geometryWindow, parent):
+        super(WindowDb, self).__init__(parent=parent)
         self._sti = None
         self.setupUi(self)
         self.current_word = None
@@ -111,3 +111,6 @@ class WindowDb(QtWidgets.QMainWindow, Ui_MainWindow):
             else:
                 display_error('звуковой файл не найден')
                 logging_wsd.warning('звуковой файл не найден')
+
+    def closeEvent(self, event: PySide6.QtGui.QCloseEvent) -> None:
+        super().parent().show()

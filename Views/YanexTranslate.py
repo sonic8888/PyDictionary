@@ -1,5 +1,7 @@
 import re
 import logging
+
+import PySide6
 from audioplayer import AudioPlayer
 from PySide6 import QtWidgets
 from os import path
@@ -32,8 +34,8 @@ def button_action():
 
 
 class YandexTranslateWindow(QtWidgets.QMainWindow, Ui_MainWindow):
-    def __init__(self, geometryWindow):
-        super(YandexTranslateWindow, self).__init__()
+    def __init__(self, geometryWindow, parent):
+        super(YandexTranslateWindow, self).__init__(parent=parent)
         self.current_response = None
         self.settings = Settings()
         self.setupUi(self)
@@ -60,8 +62,9 @@ class YandexTranslateWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         global current_audio
         response = request(word)
         if response:
-            current_audio = get_word_sound(word, folder_id, iam_token)
-        if response:
+            s = Settings()
+            current_audio = get_word_sound(word, folder_id, iam_token, s.path_name_audio_temp)
+            # if response:
             self.current_response = response
             data = response.json()
             list_data = data['def']
@@ -72,3 +75,6 @@ class YandexTranslateWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.lineEdit_2.setText(dict_html_tra['tr'])
                 self.textEdit.setHtml(examples_html)
         return response
+
+    def closeEvent(self, event: PySide6.QtGui.QCloseEvent) -> None:
+        super().parent().show()

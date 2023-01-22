@@ -1,5 +1,6 @@
 import sys, os
-
+import sqlite3
+from sqlite3 import connect, Cursor
 from typing import Any
 import re
 from enum import Enum
@@ -7,6 +8,8 @@ from PySide6.QtGui import QStandardItemModel, QStandardItem, QIcon, QPixmap
 
 from PySide6.QtCore import QSize, Qt, Slot, QItemSelection
 from PySide6.QtWidgets import QApplication, QMainWindow, QPushButton, QWidget, QVBoxLayout, QLabel, QListView
+
+from Servise.tools import request, ConnectDb, get_data_general
 
 select_word = "SELECT Word, Transcription, SoundName FROM Words WHERE WordId = {:d}"
 select_translates = "SELECT TranslateId, Translate, PartOfSpeach FROM Translates WHERE WordId = {:d}"
@@ -99,10 +102,47 @@ def main():
         print(item)
 
 
+class Test:
+    def __init__(self, **kwargs):
+        _my_dic = {'path_name': None, 'time': 500, 'url': False}
+        print(type(kwargs))
+        for key, value in kwargs.items():
+            if key in _my_dic:
+                _my_dic[key] = value
+        self.path_name = _my_dic['path_name']
+        self.time = _my_dic['time']
+        self.url = _my_dic['url']
+        print(f'path_name: {self.path_name}, time: {self.time}, url: {self.url}')
+
+
+def test_fun(con, cur, fun_execute, fun_fetch, sql, my_tuple):
+    # res = cur.my_function(sql, my_tuple)
+    f = getattr(cur, fun_execute)
+    f(sql, my_tuple)
+    fetch = getattr(cur, fun_fetch)
+    res = fetch()
+    print(res[0])
+    cur.close()
+    con.close()
+    # cur.__getattribute__(my_function)
+
+
+def create_test(**kwargs):
+    x = kwargs.get('x', 67)
+    y = kwargs.get('y', 'yes')
+    z = kwargs.get('x', True)
+    print("x=%s, y=%s, z=%s" % (x, y, z))
+
+
 if __name__ == '__main__':
-    # main()
-    text = ''
-    if text:
-        print('text')
-    else:
-        print('empty')
+    # create_test(y='word', x=5, z=89, f=67)
+    portfolio = [
+        {'name': 'IBM', 'shares': 100, 'price': 91.1},
+        {'name': 'MSFT', 'shares': 50, 'price': 45.67},
+        {'name': 'HPE', 'shares': 75, 'price': 34.51},
+        {'name': 'CAT', 'shares': 60, 'price': 67.89},
+        {'name': 'IBM', 'shares': 200, 'price': 95.25}
+    ]
+
+    _l_name = [item['name'] for item in portfolio if item['shares'] > 100]
+    print(_l_name)
