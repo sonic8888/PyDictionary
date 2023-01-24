@@ -1,0 +1,11 @@
+{
+  "Words": "CREATE TABLE Words (\n    word_id     INTEGER   PRIMARY KEY AUTOINCREMENT\n                          UNIQUE,\n    word        TEXT (50) NOT NULL\n                          UNIQUE,\n    ts          TEXT (50),\n    status      INTEGER   DEFAULT (1) \n                          CHECK (status >= 1 AND \n                                 status <= 3),\n    data_insert TEXT (20) DEFAULT (CURRENT_DATE),\n    translate   TEXT\n);",
+  "Translates" : "CREATE TABLE Translates (\n    translate_id INTEGER   PRIMARY KEY\n                           UNIQUE,\n    word_id      INTEGER   REFERENCES Words (word_id) ON DELETE CASCADE,\n    translate    TEXT (50),\n    pos          TEXT (20),\n    gen          TEXT (10),\n    fr           INTEGER\n);",
+  "SynExample" : "CREATE TABLE SynExample (\n    syn_id   INTEGER   REFERENCES Syn (syn_id) ON DELETE CASCADE,\n    examp_en TEXT (50),\n    examp_ru TEXT (50) \n);",
+  "Syn": "CREATE TABLE Syn (\n    syn_id       INTEGER   PRIMARY KEY AUTOINCREMENT\n                           UNIQUE,\n    translate_id INTEGER   REFERENCES Translates (translate_id) ON DELETE CASCADE,\n    syn          TEXT (50),\n    pos          TEXT (20),\n    gen          TEXT (10),\n    fr           INTEGER\n);",
+  "Mean" : "CREATE TABLE Mean (\n    translate_id INTEGER   REFERENCES Translates (translate_id) ON DELETE CASCADE,\n    mean         TEXT (30) \n);",
+  "Examples" : "CREATE TABLE Examples (\n    translate_id INTEGER   REFERENCES Translates (translate_id) ON DELETE CASCADE,\n    examp_en     TEXT (50),\n    examp_ru     TEXT (50) \n);",
+  "DataResponse": "CREATE TABLE DataResponse (\n    res_id   INTEGER REFERENCES Words (word_id) ON DELETE CASCADE,\n    response TEXT\n);",
+  "ListName": "CREATE TABLE ListName (\n    list_id      INTEGER   PRIMARY KEY AUTOINCREMENT,\n    list_name    TEXT (50) UNIQUE\n                           NOT NULL,\n    current_list INTEGER   DEFAULT (0) \n);",
+  "ListWords": "CREATE TABLE ListWords (\n    word_id       INTEGER   NOT NULL\n                            REFERENCES Words (word_id) ON DELETE CASCADE,\n    list_name     TEXT (50) REFERENCES ListName (list_id) ON DELETE CASCADE,\n    word          TEXT (50),\n    list_id       INTEGER   REFERENCES ListName (list_id) ON DELETE CASCADE,\n    list_words_id INTEGER   PRIMARY KEY AUTOINCREMENT,\n    translate     TEXT (50) \n);"
+}

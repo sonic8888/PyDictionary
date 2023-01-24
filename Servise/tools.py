@@ -674,7 +674,6 @@ def get_data(word):
 
 def get_data_general(sql, params_sql, operation_ex='execute', operation_cur='fetchone', commit=None,
                      path_db='dictionary.db'):
-
     connectionDB = ConnectDb(path_name_db=path_db)
     connect = connectionDB.get_connect
     cursor = connect.cursor()
@@ -683,7 +682,7 @@ def get_data_general(sql, params_sql, operation_ex='execute', operation_cur='fet
         execute(sql, params_sql)
         if commit:
             connect.commit()
-            return None
+            return getattr(cursor, commit)
         else:
             fetch = getattr(cursor, operation_cur)
             res = fetch()
